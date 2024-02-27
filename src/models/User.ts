@@ -1,68 +1,87 @@
-import { DataTypes, Model, Optional, QueryTypes, col } from "sequelize";
+import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/mysql";
-import { Op } from "sequelize";
 
-export interface UsersAttributes {
-    id: number,
-    email: string,
-    confirmationCode: string,
-    passwordHash: string,
-    name: string,
+interface UserAttributes {
+    id: number;
+    name: string;
+    email: string;
+    cpf: string;
+    location: any; 
+    passwordHash: string;
+    confirmationCode: string;
+    temporaryUser: number;
+    birthday: Date;
+    role: string;
+    createdAt: Date;
 }
 
-interface UsersCreateAttributes extends Optional<UsersAttributes, 'id'>{};
-interface UserCreationAttributes {email: string, passwordHash: string, confirmationCode: string}
+interface UserCreationAttributes extends Optional<UserAttributes, 'id'> {}
 
-class User extends Model<UsersAttributes, UserCreationAttributes> implements UsersAttributes{
+class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
     public id!: number;
-    public email!: string;
-    public confirmationCode!: string
-    public passwordHash!: string
     public name!: string;
-    
-    static async userByName(name: string): Promise<User | null>{
-        try {
-            const user = User.findOne({
-                where: {
-                    name
-                }
-            })
-            return user
-        } catch (e) {
-            console.error(e);
-            return null
-        }
-    }
+    public email!: string;
+    public cpf!: string;
+    public location!: any;
+    public passwordHash!: string;
+    public confirmationCode!: string;
+    public temporaryUser!: number;
+    public birthday!: Date;
+    public role!: string;
+    public createdAt!: Date;
 }
 
 User.init({
     id: {
         type: DataTypes.INTEGER,
-        unique: true,
         primaryKey: true,
         autoIncrement: true
+    },
+    name: {
+        type: DataTypes.STRING,
+        allowNull: false
     },
     email: {
         type: DataTypes.STRING,
         unique: true,
         allowNull: false
     },
-    confirmationCode: {
+    cpf: {
         type: DataTypes.STRING,
+        unique: true,
+        allowNull: false
+    },
+    location: {
+        type: DataTypes.GEOMETRY('POINT'),
+        allowNull: false
     },
     passwordHash: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    name: {
+    confirmationCode: {
         type: DataTypes.STRING,
-        unique: true
+    },
+    temporaryUser: {
+        type: DataTypes.INTEGER,
+    },
+    birthday: {
+        type: DataTypes.DATE,
+        allowNull: false
+    },
+    role: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false
     }
 }, {
-    sequelize, 
+    sequelize,
+    modelName: 'User',
     tableName: 'users',
     timestamps: false
 });
-
 
 export default User;

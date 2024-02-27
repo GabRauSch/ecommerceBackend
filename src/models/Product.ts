@@ -1,68 +1,87 @@
-import { DataTypes, Model, Optional, QueryTypes, col } from "sequelize";
+import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/mysql";
-import { Op } from "sequelize";
 
-export interface ProductsAttributes {
-    id: number,
-    name: string,
-    companyId: number,
-    categoryId: number,
-    originalUnitPrice: number,
+interface ProductAttributes {
+    id: number;
+    name: string;
+    categoryId: number;
+    description: string;
+    storeId: number;
+    stockQuantity: number;
+    unitPrice: number;
+    discount: number;
+    discountFinishTime: Date;
+    recommended: boolean;
+    createdAt: Date;
 }
 
-interface ProductCreateAttributes extends Optional<ProductsAttributes, 'id'>{};
-interface ProductCreationAttributes {email: string, passwordHash: string, confirmationCode: string}
+interface ProductCreationAttributes extends Optional<ProductAttributes, 'id'> {}
 
-class Product extends Model<ProductsAttributes, ProductCreationAttributes> implements ProductsAttributes{
+class Product extends Model<ProductAttributes, ProductCreationAttributes> implements ProductAttributes {
     public id!: number;
-    public email!: string;
-    public confirmationCode!: string
-    public passwordHash!: string
     public name!: string;
-    
-    static async ProductByName(name: string): Promise<Product | null>{
-        try {
-            const user = Product.findOne({
-                where: {
-                    name
-                }
-            })
-            return user
-        } catch (e) {
-            console.error(e);
-            return null
-        }
-    }
+    public categoryId!: number;
+    public description!: string;
+    public storeId!: number;
+    public stockQuantity!: number;
+    public unitPrice!: number;
+    public discount!: number;
+    public discountFinishTime!: Date;
+    public recommended!: boolean;
+    public createdAt!: Date;
 }
 
 Product.init({
     id: {
         type: DataTypes.INTEGER,
-        unique: true,
         primaryKey: true,
         autoIncrement: true
     },
-    email: {
-        type: DataTypes.STRING,
-        unique: true,
-        allowNull: false
-    },
-    confirmationCode: {
-        type: DataTypes.STRING,
-    },
-    passwordHash: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
     name: {
         type: DataTypes.STRING,
-        unique: true
+        allowNull: false
+    },
+    categoryId: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: false
+    },
+    storeId: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    stockQuantity: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    unitPrice: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    discount: {
+        type: DataTypes.FLOAT,
+        allowNull: false
+    },
+    discountFinishTime: {
+        type: DataTypes.DATE,
+        allowNull: false
+    },
+    recommended: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false
+    },
+    createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false
     }
 }, {
-    sequelize, 
+    sequelize,
+    modelName: 'Product',
     tableName: 'products',
     timestamps: false
 });
-
 
 export default Product;

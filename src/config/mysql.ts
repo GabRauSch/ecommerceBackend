@@ -10,7 +10,7 @@ let databaseConfig = {
     databasePort: parseInt(process.env.MYDBPORT as string) 
 }
 
-if(process.env.NODE_ENV == 'test'){
+if(process.env.ENV == 'DEVELOPMENT'){
     databaseConfig.database = process.env.MYDB_TEST as string
 }
 
