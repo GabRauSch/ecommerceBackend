@@ -19,6 +19,7 @@ class Store extends Model<StoreAttributes, StoreCreationAttributes> implements S
     static async findByName(name: string): Promise<Store | null> {
         try {
             const store = await Store.findOne({ where: { name } });
+            console.log(store?.id)
             return store;
         } catch (error) {
             console.error(error);

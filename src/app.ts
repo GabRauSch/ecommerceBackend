@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { sessionConfig } from './config/Session';
 import Auth from './routes/Auth'
+import Product from './routes/Product'
 
 const app = express();
 
@@ -12,12 +13,10 @@ app.use(limiter);
 app.use(helmet());
 app.use(sessionConfig);
 
-//middleware
-// app.use(()=>{
-//     console.log('middleware')
-// })
+app.use(express.json())
 
-app.use(Auth)
+app.use('/auth', Auth);
+app.use('/product', Product)
 
 
 
