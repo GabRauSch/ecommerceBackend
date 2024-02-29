@@ -13,6 +13,7 @@ class ProductsController {
         
         return res.json({
             name: name.toUpperCase()
+            
         })
     }
 }
