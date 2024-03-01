@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
-import Product from "../models/Product";
+import Product from "../models/Products";
 import { productById, productCreate } from "../validation/ProductsValidation";
-import Category from "../models/Category";
-import Store from "../models/Store";
+import Category from "../models/Categories";
+import Store from "../models/Stores";
 import PatternResponses from "../utils/PatternResponses";
 
 class ProductsController {

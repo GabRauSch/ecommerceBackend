@@ -1,4 +1,4 @@
-import ProductModel from './models/Product';
+import ProductModel from './models/Products';
 import express from 'express';
 import { limiter } from './config/Limiter'
 import cors from 'cors';
@@ -7,8 +7,8 @@ import { sessionConfig } from './config/Session';
 import Auth from './routes/Auth'
 import Product from './routes/Product'
 import { Model } from 'sequelize';
-import CategoryModel from './models/Category';
-import StoreModel from './models/Store';
+import CategoryModel from './models/Categories';
+import StoreModel from './models/Stores';
 
 if(process.env.ENV == 'HOMOLOG')
 {
