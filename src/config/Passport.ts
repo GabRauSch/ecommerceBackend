@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { ExtractJwt, Strategy as JWTStrategy } from "passport-jwt";
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto'
-import UsersModel from "../models/User";
+import UsersModel from "../models/Users";
 
 dotenv.config();
 
@@ -36,6 +36,27 @@ export const privateRoute = (req: Request, res: Response, next: NextFunction) =>
         return next();
     })(req, res, next);
 }
+export const roleSpecific = (allowedRole: string)=>{
+    return (req: Request, res: Response, next: NextFunction) => {
+        passport.authenticate('jwt', async (err: Error, user: UsersModel) => {
+            if (err) {
+                console.error(err);
+                return next(err);
+            }
+            if (!user) {
+                return next(notAuthorizedJson);
+            }
+
+            if (user.role !== allowedRole) {
+                return next({ status: 403, message: "Forbidden" });
+            }
+
+            req.user = user;
+            return next();
+        })(req, res, next);
+    };
+}
+
 
 export const generateToken = (data: object)=>{
     return jwt.sign(data, process.env.JWTPASS as string)
