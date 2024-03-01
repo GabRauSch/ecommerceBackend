@@ -1,15 +1,17 @@
 import { Request, Response } from "express";
 import Product from "../models/Products";
-import { productById, productCreate } from "../validation/ProductsValidation";
+import { productById, productCreation } from "../validation/ProductsValidation";
 import Category from "../models/Categories";
 import Store from "../models/Stores";
 import PatternResponses from "../utils/PatternResponses";
+import { categoryid } from "../validation/CategorValidation";
+import { idValidation } from "../validation/globalValidation";
 
 class ProductsController {
     public static async productById(req: Request, res: Response){
         const {id} = req.params;
 
-        const {error} = productById.validate(req.params)
+        const {error} = idValidation.validate(id)
         if (error) return res.status(400).json({ error: error.details[0].message });
 
         const product = await Product.findByPk(id);
@@ -19,10 +21,9 @@ class ProductsController {
     } 
 
     public static async createProduct(req: Request, res: Response){
-        const {product} = req.body;
+        const product = req.body;
 
-
-        const {error} = productCreate.validate(product)
+        const {error} = productCreation.validate(product)
         if (error) return res.status(400).json({ error: error.details[0].message });
         
         const [category, store] = await Promise.all([
@@ -34,10 +35,20 @@ class ProductsController {
         if(category.storeId != product.storeId) return PatternResponses.error.doesntBelong(res, 'category', 'store')
         if (await Product.findByName(product.name)) return PatternResponses.error.alreadyExists(res, 'product name');
 
-        const productCreation = await Product.createProduct(product);
-        if(!productCreation) return res.status(400).json({error: "The product hasn't been created"});
+        const productCreate = await Product.create(product);
+        if(!productCreate) return res.status(400).json({error: "The product hasn't been created"});
         
-        return res.json({message: "Created with success" })
+        return PatternResponses.success.created(res,)
+    }
+
+    public static async productsAndChilds(req: Request, res: Response){
+        const {categoryId} = req.params;
+        
+        const {error} = idValidation.validate(categoryId)
+        if (error) return PatternResponses.error.invalidAttributes(res, '', error.details[0].message);
+
+        const products = await Product.findByCategoryAndChildren(parseInt(categoryId))
+        return res.json(products)
     }
 }
 

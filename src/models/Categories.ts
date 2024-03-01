@@ -15,6 +15,21 @@ class Category extends Model<CategoryAttributes, CategoryCreationAttributes> imp
     public name!: string;
     public parentCategoryId!: number;
     public storeId!: number;
+
+    public static async findParentCategories(storeId: number): Promise<Category[] | null>{
+        try {
+            const categories = await Category.findAll({
+                where: {
+                    storeId,
+                    parentCategoryId: 0
+                }
+            })
+            return categories
+        } catch (error) {
+            console.error(error);
+            return null
+        }
+    }
 }
 
 Category.init({

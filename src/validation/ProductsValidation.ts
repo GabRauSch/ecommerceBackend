@@ -1,9 +1,8 @@
 import Joi from "joi";
 
-export const productById = Joi.object({
-    id: Joi.number().min(0).required()
-})
-export const productCreate = Joi.object
+export const productById = Joi.number().min(0).required()
+
+export const productCreation = Joi.object
 ({
     name: Joi.string().min(5).max(20).required(),
     categoryId: Joi.number().min(0).required(),

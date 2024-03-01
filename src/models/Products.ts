@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional } from "sequelize";
+import { DataTypes, Model, Optional, QueryTypes } from "sequelize";
 import sequelize from "../config/mysql";
 
 interface ProductAttributes {
@@ -30,27 +30,45 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
     public recommended!: boolean;
     public createdAt!: Date;
 
-    static async createProduct(data:ProductCreationAttributes): Promise<boolean> {
-        try {
-            const productCreate = await Product.create(data)
-            return productCreate ? true : false;
-        } catch (error) 
-        {
-            console.error(error);
-            return false;
-        }
-    }
     static async findByName(name: string): Promise<Product | null> {
         try {
             const product = await Product.findOne({ where: { name } });
             return product;
         } catch (error) {
             console.error(error);
-            console.log("se ferrou:)")
             return null;
         }
     }
 
+    static async findByCategory(categoryId: number): Promise<Product[] | null>{
+        try {
+            const products = await Product.findAll({
+                where: {categoryId}
+            })
+            return products           
+        } catch (error) {
+            console.error(error);
+            return null;            
+        }
+    }
+    static async findByCategoryAndChildren(categoryId: number): Promise<Product[] | null>{
+        try {
+            const rawQUery = 
+            `SELECT p.* from products p
+                JOIN categories c ON c.id = p.categoryId
+            WHERE p.categoryId = :categoryId 
+                OR c.parentCategoryId = :categoryId`;
+
+            const products: Product[] = await sequelize.query(rawQUery, {
+                replacements: {categoryId},
+                type: QueryTypes.SELECT
+            })
+            return products
+        } catch (error) {
+            console.error(error);
+            return null;            
+        }
+    }
 }
 
 Product.init({

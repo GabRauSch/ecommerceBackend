@@ -9,6 +9,7 @@ import Product from './routes/Product'
 import { Model } from 'sequelize';
 import CategoryModel from './models/Categories';
 import StoreModel from './models/Stores';
+import Category from './routes/Category'
 
 if(process.env.ENV == 'HOMOLOG')
 {
@@ -28,6 +29,7 @@ app.use(express.json())
 
 app.use('/auth', Auth);
 app.use('/product', Product)
+app.use('/category', Category)
 
 
 
