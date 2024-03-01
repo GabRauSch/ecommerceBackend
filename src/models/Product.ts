@@ -33,11 +33,7 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
     static async createProduct(data:ProductCreationAttributes): Promise<boolean> {
         try {
             const productCreate = await Product.create(data)
-            if(!productCreate)
-            {
-                return false;
-            }
-            return true;
+            return productCreate ? true : false;
         } catch (error) 
         {
             console.error(error);
@@ -65,7 +61,7 @@ Product.init({
     },
     name: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false, 
     },
     categoryId: {
         type: DataTypes.INTEGER,

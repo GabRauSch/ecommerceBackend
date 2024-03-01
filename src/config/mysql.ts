@@ -21,8 +21,8 @@ const sequelize = new Sequelize(
     {
         dialect: 'mysql',
         port: databaseConfig.databasePort,
-        logging: true,
-        logQueryParameters: true
+        logging: process.env.FULL_LOG == 'true',
+        logQueryParameters: process.env.FULL_LOG == 'true'
     }
 );
 
