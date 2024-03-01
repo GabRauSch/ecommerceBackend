@@ -29,6 +29,32 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
     public discountFinishTime!: Date;
     public recommended!: boolean;
     public createdAt!: Date;
+
+    static async createProduct(data:ProductCreationAttributes): Promise<boolean> {
+        try {
+            const productCreate = await Product.create(data)
+            if(!productCreate)
+            {
+                return false;
+            }
+            return true;
+        } catch (error) 
+        {
+            console.error(error);
+            return false;
+        }
+    }
+    static async findByName(name: string): Promise<Product | null> {
+        try {
+            const product = await Product.findOne({ where: { name } });
+            return product;
+        } catch (error) {
+            console.error(error);
+            console.log("se ferrou:)")
+            return null;
+        }
+    }
+
 }
 
 Product.init({

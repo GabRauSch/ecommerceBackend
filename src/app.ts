@@ -7,10 +7,14 @@ import { sessionConfig } from './config/Session';
 import Auth from './routes/Auth'
 import Product from './routes/Product'
 import { Model } from 'sequelize';
+import CategoryModel from './models/Category';
+import StoreModel from './models/Store';
 
 if(process.env.ENV == 'HOMOLOG')
 {
     ProductModel.sync()
+    CategoryModel.sync()
+    StoreModel.sync()   
 }
 
 const app = express();
