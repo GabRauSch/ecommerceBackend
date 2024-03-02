@@ -11,4 +11,8 @@ router.get('/all/mostPurchased');
 
 router.post('/create', ProductsController.createProduct)
 
+router.put('/discount', ProductsController.applySingleDiscount)
+router.put('/discount/batch', ProductsController.applyDiscountsToCategory)
+router.put('/discount/batch/childs', ProductsController.applyDiscountsToCategoryAndChild)
+
 export default router

@@ -12,6 +12,7 @@ interface UserAttributes {
     temporaryUser: number;
     birthday: Date;
     role: string;
+    storeId: number,
     createdAt: Date;
 }
 
@@ -28,6 +29,7 @@ class Users extends Model<UserAttributes, UserCreationAttributes> implements Use
     public temporaryUser!: number;
     public birthday!: Date;
     public role!: string;
+    public storeId!: number;
     public createdAt!: Date;
 
     static async userByName(name: string): Promise<Users | null>{
@@ -493,6 +495,10 @@ Users.init({
     role: {
         type: DataTypes.STRING,
         allowNull: false
+    },
+    storeId: {
+        type: DataTypes.INTEGER,
+        allowNull: true
     },
     createdAt: {
         type: DataTypes.DATE,

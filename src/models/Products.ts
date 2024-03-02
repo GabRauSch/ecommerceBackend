@@ -40,33 +40,76 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
         }
     }
 
-    static async findByCategory(categoryId: number): Promise<Product[] | null>{
+    static async findByCategory(categoryId: number, attributes?: Partial<ProductAttributes>[]): Promise<Product[] | null>{
         try {
-            const products = await Product.findAll({
-                where: {categoryId}
-            })
-            return products           
+            let options: any = { where: { categoryId } };
+            if (attributes && attributes.length > 0) {
+                options.attributes = attributes.map(attr => attr as Partial<ProductAttributes>);
+            }
+    
+            const products = await Product.findAll(options);
+            return products;        
         } catch (error) {
             console.error(error);
             return null;            
         }
     }
-    static async findByCategoryAndChildren(categoryId: number): Promise<Product[] | null>{
+    static async findByCategoryAndChildren(categoryId: number, attributes?: (keyof ProductAttributes)[]): Promise<Product[] | null>{
         try {
-            const rawQUery = 
-            `SELECT p.* from products p
+            let selectClause = 'p.*'; 
+            if (attributes && attributes.length > 0) {
+                const availableAttributes = Object.keys(Product.rawAttributes);
+                const includedAttributes = attributes.filter(attr => availableAttributes.includes(attr as string));
+                if (includedAttributes.length > 0) {
+                    selectClause = includedAttributes.map(attr => `p.${attr}`).join(',');
+                }
+            }
+            const rawQuery =
+                `SELECT ${selectClause} FROM products p
                 JOIN categories c ON c.id = p.categoryId
-            WHERE p.categoryId = :categoryId 
-                OR c.parentCategoryId = :categoryId`;
+                WHERE p.categoryId = :categoryId OR c.parentCategoryId = :categoryId`;
 
-            const products: Product[] = await sequelize.query(rawQUery, {
-                replacements: {categoryId},
+            const products: Product[] = await sequelize.query(rawQuery, {
+                replacements: { categoryId },
                 type: QueryTypes.SELECT
             })
             return products
         } catch (error) {
             console.error(error);
             return null;            
+        }
+    }
+
+    static async applySingleDiscount(product: Product, discount: number, discountFinishTime: Date): Promise<boolean>{
+        try {
+            const updating = await product.update({    
+                discount,
+                discountFinishTime
+            });
+            
+            return Boolean(updating)
+        } catch (error) {
+            console.error(error);
+            return false;
+        }
+    }
+    static async applyBatchDiscount(productIds: number[], discount: number, discountFinishTime: Date): Promise<boolean>{
+        try {
+            const rawQuery = `
+                UPDATE products 
+                SET discount = :discount, 
+                    discountFinishTime = :discountFinishTime 
+                WHERE id IN (:productIds)
+            `
+            const updating = sequelize.query(rawQuery, {
+                    replacements: {discount, discountFinishTime, productIds},
+                    type: QueryTypes.UPDATE
+            })
+
+            return Boolean(updating)
+        } catch (error) {
+            console.error(error);
+            return false;
         }
     }
 }

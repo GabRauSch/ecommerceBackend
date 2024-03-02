@@ -1,11 +1,10 @@
 import { Request, Response } from "express";
 import Product from "../models/Products";
-import { productById, productCreation } from "../validation/ProductsValidation";
+import { discountValidation, productById, productCreation } from "../validation/ProductsValidation";
 import Category from "../models/Categories";
 import Store from "../models/Stores";
 import PatternResponses from "../utils/PatternResponses";
-import { categoryid } from "../validation/CategorValidation";
-import { idValidation } from "../validation/globalValidation";
+import { greaterDate, idValidation } from "../validation/globalValidation";
 
 class ProductsController {
     public static async productById(req: Request, res: Response){
@@ -49,6 +48,71 @@ class ProductsController {
 
         const products = await Product.findByCategoryAndChildren(parseInt(categoryId))
         return res.json(products)
+    }
+
+    public static async applySingleDiscount(req: Request, res: Response){
+        const {productId, discount, discountFinishTime} = req.body;
+
+        const {error} = idValidation.validate(productId) || greaterDate.validate(discountFinishTime);
+        if (error) return PatternResponses.error.invalidAttributes(res, '', error.details[0].message);
+
+        const product = await Product.findByPk(productId);
+        if(!product) return PatternResponses.error.noRegister(res)
+
+        const discountUpdate = await Product.applySingleDiscount(product, discount, discountFinishTime);
+        if(!discountUpdate) return PatternResponses.error.notUpdated(res);
+
+        return PatternResponses.success.updated(res)
+    }
+    
+    public static async applyDiscountsToCategory(req: Request, res: Response){
+        const {categoryId, discount, discountFinishTime} = req.body;
+
+        const {error} = idValidation.validate(categoryId) || greaterDate.validate(discountFinishTime) || discountValidation.validate(discount);
+        if (error) return PatternResponses.error.invalidAttributes(res, '', error.details[0].message);
+        
+        const products = await Product.findAll({where: {categoryId}, attributes:['id']});
+        if(!products) return PatternResponses.error.noRegister(res)
+        
+        const productIds = products.map(product => product.id)
+        const discountUpdate = await Product.applyBatchDiscount(productIds, discount, discountFinishTime)
+        if(!discountUpdate) return  PatternResponses.error.notUpdated(res)
+
+        return PatternResponses.success.updated(res)
+    }
+
+    public static async applyDiscountsToCategoryAndChild(req: Request, res: Response){
+        const {categoryId, discount, discountFinishTime} = req.body;
+
+        const {error} = idValidation.validate(categoryId) || greaterDate.validate(discountFinishTime) || discountValidation.validate(discount);
+        if (error) return PatternResponses.error.invalidAttributes(res, '', error.details[0].message);
+        
+        const products = await Product.findByCategoryAndChildren(categoryId, ['id']);
+        if(!products) return PatternResponses.error.noRegister(res)
+
+        const productIds = products?.map(product => product.id)
+        const discountUpdate = await Product.applyBatchDiscount(productIds, discount, discountFinishTime)
+        if(!discountUpdate) return  PatternResponses.error.notUpdated(res)
+
+        return PatternResponses.success.updated(res)
+    }
+
+    public static async removeProduct(req: Request, res: Response){
+        const {productId} = req.body;
+
+        const {error} = idValidation.validate(productId)
+        if (error) return PatternResponses.error.invalidAttributes(res, '', error.details[0].message);
+
+        const product = await Product.findByPk(productId);
+        if(!product) return PatternResponses.error.noRegister(res)
+
+        try {
+            const productRemove = await product.destroy();
+        } catch (error) {
+            return PatternResponses.error.notDeleted(res)
+        }
+        
+        return PatternResponses.success.deleted(res)
     }
 }
 
