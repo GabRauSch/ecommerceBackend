@@ -3,6 +3,7 @@ import sequelize from "../config/mysql";
 
 interface PurchaseAttributes {
     id: number;
+    productId: number,
     productName: string;
     productImage: string;
     quantity: number;
@@ -15,6 +16,7 @@ interface PurchaseCreationAttributes extends Optional<PurchaseAttributes, 'id'> 
 
 class Purchase extends Model<PurchaseAttributes, PurchaseCreationAttributes> implements PurchaseAttributes {
     public id!: number;
+    public productId!: number;
     public productName!: string;
     public productImage!: string;
     public quantity!: number;
@@ -28,6 +30,10 @@ Purchase.init({
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true
+    },
+    productId: {
+        type: DataTypes.NUMBER,
+        allowNull: true
     },
     productName: {
         type: DataTypes.STRING,

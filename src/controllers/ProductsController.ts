@@ -114,6 +114,39 @@ class ProductsController {
         
         return PatternResponses.success.deleted(res)
     }
+
+    public static async productByStoreId(req: Request, res: Response){
+        const {storeId} = req.params;
+
+        const {error} = idValidation.validate(storeId)
+        if (error) return PatternResponses.error.invalidAttributes(res, '', error.details[0].message);
+
+        const products = await Product.findAll({where: {storeId}})
+        if(!products) return PatternResponses.error.noRegister(res);
+
+        return res.json(products)
+    }
+
+    public static async productByCategory(req: Request, res: Response){
+        const {categoryId} = req.params;
+        const {error} = idValidation.validate(categoryId)
+        if (error) return PatternResponses.error.invalidAttributes(res, '', error.details[0].message);
+
+        const products = await Product.findByCategory(parseInt(categoryId));
+        if(!products) return PatternResponses.error.noRegister(res);
+
+        return res.json(products)
+    }
+
+    public static async mostPurchasedItems(req: Request, res: Response){
+        const {storeId} = req.params;
+        const {amount} = req.query
+        
+        const {error} = idValidation.validate(storeId) || idValidation.validate(amount);
+        if (error) return PatternResponses.error.invalidAttributes(res, '', error.details[0].message);
+
+        const products = await Product.findMostPurchasedItems(parseInt(storeId), parseInt(amount as string))
+    }
 }
 
 export default ProductsController

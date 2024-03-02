@@ -4,10 +4,10 @@ import ProductsController from '../controllers/ProductsController';
 const router = Router();
 
 router.get('/:id', ProductsController.productById);
-router.get('/all/:storeId');
-router.get('/all/:categoryId');
+router.get('/all/:storeId', ProductsController.productByStoreId);
+router.get('/all/:categoryId', ProductsController.productByCategory);
 router.get('/all/childs/:categoryId', ProductsController.productsAndChilds);
-router.get('/all/mostPurchased');
+router.get('/all/mostPurchased', ProductsController.mostPurchasedItems);
 
 router.post('/create', ProductsController.createProduct)
 

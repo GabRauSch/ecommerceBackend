@@ -11,8 +11,7 @@ import CategoryModel from './models/Categories';
 import StoreModel from './models/Stores';
 import Category from './routes/Category'
 
-if(process.env.ENV == 'HOMOLOG')
-{
+if(process.env.ENV == 'HOMOLOG'){
     ProductModel.sync()
     CategoryModel.sync()
     StoreModel.sync()   

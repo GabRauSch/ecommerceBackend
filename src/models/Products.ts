@@ -79,6 +79,32 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
             return null;            
         }
     }
+    static async findMostPurchasedItems(storeId: number, amount: number): Promise<Product[]| null>{
+        try {
+            const rawQuery = `
+                SELECT p.id, SUM(ps.quantity)  
+                FROM products p
+                JOIN purchases ps ON ps.productId = p.id
+                    WHERE p.storeId = :storeId
+                GROUP BY p.id
+                HAVING SUM(ps.quantity) > 
+                    (SELECT AVG(qt) 
+                        FROM (SELECT SUM(ps.quantity) AS qt 
+                            FROM products p 
+                            JOIN purchases ps ON ps.productId = p.id 
+                                WHERE p.storeId = :storeId GROUP BY p.id) AS subquery)`
+
+            const products: Product[] = await sequelize.query(rawQuery, {
+                replacements: {storeId, amount},
+                type: QueryTypes.SELECT,
+            })
+
+            return products
+        } catch (error) {
+            console.error(error);
+            return null;            
+        }
+    }
 
     static async applySingleDiscount(product: Product, discount: number, discountFinishTime: Date): Promise<boolean>{
         try {
