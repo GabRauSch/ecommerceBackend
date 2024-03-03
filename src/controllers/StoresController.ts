@@ -14,7 +14,7 @@ import fs from 'fs'
 import Users from "../models/Users";
 import { staffMemberValidation } from "../validation/UserValidation";
 
-class ProductsController {
+class StoreController {
     public static async storeById(req: Request, res: Response){
         const {id} = req.params;
 
@@ -122,4 +122,4 @@ class ProductsController {
     }
 }
 
-export default ProductsController
+export default StoreController

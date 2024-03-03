@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
 import Product from "../models/Products";
-import { discountValidation, productById, productCreation } from "../validation/ProductsValidation";
+import { applyDiscountValidation, discountValidation, productById, productCreation } from "../validation/ProductsValidation";
 import Category from "../models/Categories";
 import Store from "../models/Stores";
 import PatternResponses from "../utils/PatternResponses";
 import { greaterDate, idValidation } from "../validation/globalValidation";
+import { Selections } from "../types/products/Selection";
 
 class ProductsController {
     public static async productById(req: Request, res: Response){
@@ -51,15 +52,15 @@ class ProductsController {
     }
 
     public static async applySingleDiscount(req: Request, res: Response){
-        const {productId, discount, discountFinishTime} = req.body;
-
-        const {error} = idValidation.validate(productId) || greaterDate.validate(discountFinishTime);
+        const {productId, discountId} = req.body;
+        
+        const {error} = applyDiscountValidation.validate(req.body);
         if (error) return PatternResponses.error.invalidAttributes(res, '', error.details[0].message);
 
-        const product = await Product.findByPk(productId);
+        const product = await Product.findByPk(productId,{attributes:['id']});
         if(!product) return PatternResponses.error.noRegister(res)
 
-        const discountUpdate = await Product.applySingleDiscount(product, discount, discountFinishTime);
+        const discountUpdate = await Product.applySingleDiscount(productId, discountId);
         if(!discountUpdate) return PatternResponses.error.notUpdated(res);
 
         return PatternResponses.success.updated(res)
@@ -127,7 +128,7 @@ class ProductsController {
         return res.json(products)
     }
 
-    public static async productByCategory(req: Request, res: Response){
+    public static async productsByCategory(req: Request, res: Response){
         const {categoryId} = req.params;
         const {error} = idValidation.validate(categoryId)
         if (error) return PatternResponses.error.invalidAttributes(res, '', error.details[0].message);
@@ -138,15 +139,37 @@ class ProductsController {
         return res.json(products)
     }
 
-    public static async mostPurchasedItems(req: Request, res: Response){
+    public static async productByEndingDiscount(req: Request, res: Response){
         const {storeId} = req.params;
-        const {amount} = req.query
-        
-        const {error} = idValidation.validate(storeId) || idValidation.validate(amount);
+
+        const {error} = idValidation.validate(storeId);
         if (error) return PatternResponses.error.invalidAttributes(res, '', error.details[0].message);
 
-        const products = await Product.findMostPurchasedItems(parseInt(storeId), parseInt(amount as string))
+        const products = await Product.findByEndingDiscount(parseInt(storeId))
     }
+
+    public static async mostPurchasedItems(req: Request, res: Response){
+        const {storeId} = req.params;
+        
+        const {error} = idValidation.validate(storeId);
+        if (error) return PatternResponses.error.invalidAttributes(res, '', error.details[0].message);
+
+        const products = await Product.findMostPurchasedItems(parseInt(storeId))
+
+        return res.json(products)
+    }
+
+    public static async mostPurchasedByCategories(req: Request, res: Response){
+        const {categoryId, storeId} = req.params;
+
+        const {error} = idValidation.validate(storeId) || idValidation.validate(categoryId);
+        if (error) return PatternResponses.error.invalidAttributes(res, '', error.details[0].message);
+
+        const products = await Product.findMostPurchasedItemByCategories(parseInt(storeId))
+
+        return res.json(products)
+    }
+
 }
 
 export default ProductsController

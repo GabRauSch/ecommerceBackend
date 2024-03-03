@@ -22,7 +22,8 @@ class Category extends Model<CategoryAttributes, CategoryCreationAttributes> imp
                 where: {
                     storeId,
                     parentCategoryId: 0
-                }
+                },
+                limit: 6
             })
             return categories
         } catch (error) {

@@ -23,6 +23,7 @@ class Purchase extends Model<PurchaseAttributes, PurchaseCreationAttributes> imp
     public totalValue!: number;
     public userId!: number;
     public pendent!: boolean;
+
 }
 
 Purchase.init({
@@ -32,7 +33,7 @@ Purchase.init({
         autoIncrement: true
     },
     productId: {
-        type: DataTypes.NUMBER,
+        type: DataTypes.INTEGER,
         allowNull: true
     },
     productName: {
@@ -63,7 +64,7 @@ Purchase.init({
     sequelize,
     modelName: 'Purchase',
     tableName: 'purchases',
-    timestamps: false
+    timestamps: true
 });
 
 export default Purchase;

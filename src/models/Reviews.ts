@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional } from "sequelize";
+import { DataTypes, Model, Optional, QueryTypes } from "sequelize";
 import sequelize from "../config/mysql";
 
 interface ReviewAttributes {
@@ -19,6 +19,27 @@ class Review extends Model<ReviewAttributes, ReviewCreationAttributes> implement
     public rating!: number;
     public comment!: string;
     public createdAt!: Date;
+
+    static async findByProductId(productId: number): Promise<Review[] | null>{
+        try {
+            const rawQuery = 
+                `SELECT u.name, r.rating, r.comment, r.createdAt 
+                FROM reviews r
+                    JOIN users u ON r.userId = u.id
+                WHERE r.productId = :productId;` 
+
+            const reviews: Review[] = await sequelize.query(rawQuery, {
+                replacements: {productId},
+                type: QueryTypes.SELECT
+            })
+
+            return reviews
+        } catch (error) {
+            console.error(error);
+            return null
+        }
+
+    }
 }
 
 Review.init({
