@@ -10,7 +10,6 @@ class PurchaseController {
     static async purchaseItem(req: Request, res: Response){
         const {productId, quantity} = req.body;
         const {user} = req;
-
         
         const {error} = purchaseValidation.validate(req.body);
         if (error) return res.status(400).json({ error: error.details[0].message });

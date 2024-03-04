@@ -22,8 +22,7 @@ class StoreController {
         if (error) return res.status(400).json({ error: error.details[0].message });
 
         const store = await Store.findByPk(id);
-        if(!store) return res.status(404).json({error: "not found"})
-
+        if(!store) return PatternResponses.error.notFound(res, 'store')
         return res.json(store)
     } 
 

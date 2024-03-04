@@ -8,6 +8,7 @@ router.get('/all/:storeId', ProductsController.productByStoreId);
 router.get('/all/:categoryId', ProductsController.productsByCategory);
 router.get('/all/childs/:categoryId', ProductsController.productsAndChilds);
 router.get('/all/mostPurchased', ProductsController.mostPurchasedItems);
+router.get('/all/mosrtPurchased/category', ProductsController.mostPurchasedByCategories)
 
 router.post('/create', ProductsController.createProduct)
 
