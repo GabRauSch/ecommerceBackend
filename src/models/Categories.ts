@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/mysql";
+import { array } from "joi";
 
 interface CategoryAttributes {
     id: number;
@@ -23,7 +24,8 @@ class Category extends Model<CategoryAttributes, CategoryCreationAttributes> imp
                     storeId,
                     parentCategoryId: 0
                 },
-                limit: 6
+                limit: 6, 
+                attributes: ["name"]
             })
             return categories
         } catch (error) {

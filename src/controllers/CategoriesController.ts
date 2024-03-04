@@ -14,10 +14,12 @@ class CategoriesController {
         const {error} = idValidation.validate(storeId)
         if (error) return res.status(400).json({ error: error.details[0].message });
 
-        const categories = await Category.findParentCategories(parseInt(storeId));
-        if(!categories) return PatternResponses.error.notFound(res, 'category')
+        const categoryNames = await Category.findParentCategories(parseInt(storeId));
+        if(!categoryNames) return PatternResponses.error.notFound(res, 'categoryNames')
 
-        return res.json(categories)
+        const names = categoryNames.map((el)=> {return el.name})
+
+        return res.json(names)
     } 
 
     public static async createCategory(req: Request, res: Response){
@@ -30,16 +32,6 @@ class CategoriesController {
         if(!categoryCreate) return PatternResponses.error.notCreated(res, 'category')
         
         return PatternResponses.success.created(res)
-    }
-
-    public static async productsAndChilds(req: Request, res: Response){
-        const {categoryId} = req.params;
-        
-        const {error} = categoryid.validate(categoryId)
-        if (error) return res.status(400).json({ error: error.details[0].message });
-
-        const products = await Product.findByCategoryAndChildren(parseInt(categoryId))
-        return res.json(products)
     }
 }
 

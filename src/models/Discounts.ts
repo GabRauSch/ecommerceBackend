@@ -20,6 +20,16 @@ class Discount extends Model<DiscountAttributes, DiscountCreationAttributes> imp
     public discountName!: string;
     public endDate!: Date;
     public createdAt!: Date;
+
+    static async findByName(discountName: string): Promise<Discount | null> {
+        try {
+            const discount = await Discount.findOne({ where: { discountName } });
+            return discount;
+        } catch (error) {
+            console.error(error);
+            return null;
+        }
+    }
 }
 
 Discount.init({
