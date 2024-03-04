@@ -6,4 +6,6 @@ const router = Router();
 
 router.get('/:id', DiscountController.discountById);
 
+router.get('/name/:name', DiscountController.discountByName);
+
 export default router

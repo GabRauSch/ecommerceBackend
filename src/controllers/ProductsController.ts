@@ -15,7 +15,7 @@ class ProductsController {
         if (error) return res.status(400).json({ error: error.details[0].message });
 
         const product = await Product.findByPk(id);
-        if(!product) return res.status(404).json({error: "not found"})
+        if(!product) return PatternResponses.error.notFound(res, 'product')
 
         return res.json(product)
     } 
@@ -159,10 +159,10 @@ class ProductsController {
         return res.json(products)
     }
 
-    public static async mostPurchasedByCategories(req: Request, res: Response){
-        const {categoryId, storeId} = req.params;
+    public static async mostPurchasedInCategories(req: Request, res: Response){
+        const {storeId} = req.params;
 
-        const {error} = idValidation.validate(storeId) || idValidation.validate(categoryId);
+        const {error} = idValidation.validate(storeId)
         if (error) return PatternResponses.error.invalidAttributes(res, '', error.details[0].message);
 
         const products = await Product.findMostPurchasedItemByCategories(parseInt(storeId))
