@@ -4,6 +4,6 @@ import { privateRoute, roleSpecific } from "../config/passport";
 
 const router = Router();
 
-router.get('/:id', privateRoute, roleSpecific('admin'), AdminController.companyInfo);
+router.get('/overview/:storeId', AdminController.overview);
 
 export default router

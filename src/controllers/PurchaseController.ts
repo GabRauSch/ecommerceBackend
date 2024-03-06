@@ -9,15 +9,17 @@ import { idValidation } from "../validation/globalValidation";
 class PurchaseController {
     static async purchaseItem(req: Request, res: Response){
         const {productId, quantity} = req.body;
-        const {user} = req;
+        // const {user} = req;
         
         const {error} = purchaseValidation.validate(req.body);
         if (error) return res.status(400).json({ error: error.details[0].message });
-        if(!user) return PatternResponses.error.notAuthorized(res)
+        // if(!user) return PatternResponses.error.notAuthorized(res)
         
-        const userId = (user as UserAttributes).id;
+        // const userId = (user as UserAttributes).id;
+        const userId = 2
         
         const purchaseInfo = await Product.findInfoForPurchase(productId);
+        console.log(purchaseInfo)
         if(!purchaseInfo) return PatternResponses.error.notFound(res, 'product');
         const data = {
             productId,
@@ -28,6 +30,7 @@ class PurchaseController {
             userId,
             pendent: true
         }
+        console.log(data)
 
         const purchaseAction = await Purchase.create(data)
         if(!purchaseAction) return PatternResponses.error.notCreated(res, 'purchase')

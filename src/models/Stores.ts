@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional } from "sequelize";
+import { DataTypes, Model, Optional, QueryTypes } from "sequelize";
 import sequelize from "../config/mysql";
 
 interface StoreAttributes {

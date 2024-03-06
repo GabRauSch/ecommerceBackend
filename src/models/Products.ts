@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional, QueryTypes, where } from "sequelize";
+import { DataTypes, Model, Op, Optional, QueryTypes, where } from "sequelize";
 import sequelize from "../config/mysql";
 
 interface ProductAttributes {
@@ -30,6 +30,25 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
     public recommended!: boolean;
     public createdAt!: Date;
 
+    static async findProduct(id: number): Promise<Product | null>{
+        try {
+            const rawQuery = `SELECT p.id, p.name, p.image, p.description, p.categoryId, (p.unitPrice - p.unitPrice * d.discount / 100) AS discountPrice , p.unitPrice AS originalPrice
+            FROM products p
+            JOIN discounts d ON d.id = p.discountId
+            WHERE p.id = :id`
+
+            const product: any[] = await sequelize.query(rawQuery, {
+                replacements: {id},
+                type: QueryTypes.SELECT
+            })
+
+            return product[0]
+        } catch (error) {
+            console.error(error);
+            return null
+        }
+    }
+
     static async findByName(name: string): Promise<Product | null> {
         try {
             const product = await Product.findOne({ where: { name } });
@@ -40,14 +59,33 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
         }
     }
 
-    static async findByCategory(categoryId: number, attributes?: Partial<ProductAttributes>[]): Promise<Product[] | null>{
+    static async findByCategory(categoryId: number, alreadyRetrieved?: number): Promise<Product[] | null>{
         try {
-            let options: any = { where: { categoryId } };
-            if (attributes && attributes.length > 0) {
-                options.attributes = attributes.map(attr => attr as Partial<ProductAttributes>);
-            }
-    
-            const products = await Product.findAll(options);
+            alreadyRetrieved = alreadyRetrieved ? alreadyRetrieved : 0;
+            const rawQuery = 
+            `SELECT 
+                p.name, 
+                p.image, 
+                p.description, 
+                p.categoryId, 
+                COALESCE(p.unitPrice - p.unitPrice * d.discount / 100, p.unitPrice) AS discountPrice,
+                CASE 
+                    WHEN d.discount IS NULL THEN NULL 
+                    ELSE p.unitPrice 
+                END AS originalPrice
+            FROM 
+                products p
+            LEFT JOIN 
+                discounts d ON d.id = p.discountId
+            WHERE 
+                p.categoryId = :categoryId
+                AND p.id NOT IN (:alreadyRetrieved)
+                AND p.image IS NOT null;`
+
+            const products: Product[] = await sequelize.query(rawQuery, {
+                replacements: {categoryId, alreadyRetrieved},
+                type: QueryTypes.SELECT
+            });
             return products;        
         } catch (error) {
             console.error(error);
@@ -82,9 +120,10 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
     static async findMostPurchasedItems(storeId: number): Promise<Product[]| null>{
         try {
             const rawQuery = `
-            SELECT p.id, p.name, p.unitPrice, p.description, p.discount, SUM(ps.quantity) AS qt
+            SELECT p.id, p.name, p.image, p.unitPrice, p.description, d.discount, SUM(ps.quantity) AS qt
                 FROM products p
             JOIN purchases ps ON ps.productId = p.id
+            JOIN dicounts d on d.id = p.discountId
                 WHERE p.storeId = :storeId
             GROUP BY p.id
             ORDER BY qt desc
@@ -105,9 +144,10 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
     static async findMostPurchasedItemByCategories(storeId: number): Promise<Product[]| null>{
         try {
             const rawQuery = `
-            SELECT p.id, p.name, p.unitPrice, p.description, p.discount, p.categoryId, SUM(ps.quantity) AS totalQuantity
+            SELECT p.id, p.name, p.image, p.unitPrice, p.description, d.discount, p.categoryId, SUM(ps.quantity) AS totalQuantity
                 FROM products p
             JOIN purchases ps ON ps.productId = p.id
+            JOIN discounts d on d.id = p.discountId
                 WHERE p.storeId = 1
                 GROUP BY p.id
             HAVING totalQuantity = (
@@ -176,7 +216,7 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
                 JOIN discounts d ON d.id = p.discountId
             WHERE discountName IS NOT NULL
                 AND storeId = :storeId
-                ORDER BY endDate asc
+                ORDER BY d.endDate asc
                 LIMIT 4
             `
             const products: Product[] = await sequelize.query(rawQuery, {
@@ -205,7 +245,7 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
                 type: QueryTypes.SELECT
             })
 
-            return purchaseInfo
+            return purchaseInfo[0]
         } catch (error) {
             console.error(error);
             return null

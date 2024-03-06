@@ -1,5 +1,6 @@
 import { Router } from "express";
 import ProductsController from '../controllers/ProductsController';
+import { upload } from "../config/multer";
 
 const router = Router();
 
@@ -8,10 +9,10 @@ router.get('/all/:storeId', ProductsController.productByStoreId);
 router.get('/all/category/:categoryId', ProductsController.productsByCategory);
 router.get('/all/childs/:categoryId', ProductsController.productsAndChilds);
 router.get('/all/mostPurchased/items/:storeId', ProductsController.mostPurchasedItems);
-router.get('/all/mostPurshased/category/:storeId', ProductsController.mostPurchasedInCategories);
-router.get('/discount/:storeId', ProductsController.productByEndingDiscount)
+router.get('/all/mostPurchased/category/:storeId', ProductsController.mostPurchasedInCategories);
+router.get('/discount/ending/:storeId', ProductsController.productByEndingDiscount)
 
-router.post('/create', ProductsController.createProduct)
+router.post('/create', upload.single('image'), ProductsController.createProduct)
 
 router.put('/discount', ProductsController.applySingleDiscount)
 router.put('/discount/batch', ProductsController.applyDiscountsToCategory)

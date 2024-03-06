@@ -54,6 +54,11 @@ class Error {
         const status = 404
         return PatternResponses.createUnsuccessfullMessage(res, status, message)
     }
+    static invalidDate = (res: Response)=>{
+        const message =  `not a valid date`;
+        const status = 400
+        return PatternResponses.createUnsuccessfullMessage(res, status, message)
+    }
     static notFound = (res: Response, object: string)=>{
         const message =  `${object} not found`;
         const status = 404
@@ -71,12 +76,13 @@ class Error {
         return PatternResponses.createUnsuccessfullMessage(res, status, message)
     }
     static missingAttributes = (res: Response, attributes: string | string[], message?: string)=>{
-        let attributesString = "";
+        let attributesString: string | string[] = "";
         if(Array.isArray(attributes) && !message){
             attributesString = attributes.join(", ")
+        } else{
+            attributesString = attributes
         }
-        let patternMessage = `Missing attributes: [${attributesString}]`
-        message = message ? message : patternMessage
+        message = `Missing attributes: [${attributesString}]`
         const status = 400;
         return PatternResponses.createUnsuccessfullMessage(res, status, message)
     }

@@ -10,8 +10,7 @@ export const productCreation = Joi.object({
     storeId: Joi.number().min(0).required(),
     stockQuantity: Joi.number().min(0).required(),
     unitPrice: Joi.number().min(0).required(),
-    discount: Joi.number().min(0).max(100).required(),
-    discountFinishTime: Joi.number().required(),
+    discountId: Joi.number().min(0).required(),
     recommended: Joi.boolean().required(),
     createdAt: Joi.number().required()
 })

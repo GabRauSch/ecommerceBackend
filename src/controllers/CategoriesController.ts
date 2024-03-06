@@ -27,6 +27,9 @@ class CategoriesController {
 
         const {error} = categoryCreation.validate(category)
         if (error) return res.status(400).json({ error: error.details[0].message });
+
+        const categoryExists = await Category.findOne({where: {name: category.name, storeId: category.storeId}})
+        if(categoryExists) return PatternResponses.error.alreadyExists(res, 'category for this store')
     
         const categoryCreate = await Category.create(category);
         if(!categoryCreate) return PatternResponses.error.notCreated(res, 'category')

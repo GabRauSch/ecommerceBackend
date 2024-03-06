@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional } from "sequelize";
+import { DataTypes, Model, Optional, QueryTypes } from "sequelize";
 import sequelize from "../config/mysql";
 
 interface PurchaseAttributes {
@@ -23,6 +23,50 @@ class Purchase extends Model<PurchaseAttributes, PurchaseCreationAttributes> imp
     public totalValue!: number;
     public userId!: number;
     public pendent!: boolean;
+
+    static async findOverviewInfo(storeId: number, startDate: string, endDate: string): Promise<any | null>{
+        try {
+            const start = new Date(startDate);
+
+            const pastMonthStart = new Date(start.getFullYear(), start.getMonth(), 1);
+            const pastMonthEnd = new Date(start.getFullYear(), start.getMonth()+1, 0);
+            
+            
+            const pastMonthStartDate = `${pastMonthStart.getFullYear()}-${String(pastMonthStart.getMonth() + 1).padStart(2, '0')}-01`;
+            const pastMonthEndDate = `${pastMonthEnd.getFullYear()}-${String(pastMonthEnd.getMonth() + 1).padStart(2, '0')}-${String(pastMonthEnd.getDate()).padStart(2, '0')}`;
+            
+            console.log(pastMonthStartDate, pastMonthEndDate)
+
+            const rawQuery = 
+            `SELECT 
+                IFNULL(COUNT(ps.id), 0) AS purchasesCount, 
+                IFNULL(SUM(ps.totalValue), 0) AS totalValue, 
+                IFNULL(COUNT(ps.userId), 0) AS clientsCount, 
+                IFNULL(COUNT(CASE WHEN ps.createdAt >= '${startDate}' AND ps.createdAt <= '${endDate}' THEN ps.userId END), 0) AS clientsCountCurrentMonth, 
+                IFNULL(SUM(CASE WHEN ps.createdAt >= '${startDate}' AND ps.createdAt <= '${endDate}' THEN ps.totalValue END), 0) AS totalValueCurrentMonth, 
+                IFNULL(COUNT(CASE WHEN ps.createdAt >= '${pastMonthStartDate}' AND ps.createdAt <= '${pastMonthEndDate}' THEN ps.userId END), 0) AS clientsCountPastMonth, 
+                IFNULL(SUM(CASE WHEN ps.createdAt >= '${pastMonthStartDate}' AND ps.createdAt <= '${pastMonthEndDate}' THEN ps.totalValue END), 0) AS totalValuePastMonth,
+                CONCAT(FORMAT(IFNULL((SUM(CASE WHEN ps.createdAt >= '${startDate}' 
+                    AND ps.createdAt <= '${endDate}' THEN ps.totalValue END) - SUM(CASE WHEN ps.createdAt >= '${pastMonthStartDate}' 
+                    AND ps.createdAt <= '${pastMonthEndDate}' THEN ps.totalValue END)) / SUM(CASE WHEN ps.createdAt >= '${pastMonthStartDate}' 
+                    AND ps.createdAt <= '${pastMonthEndDate}' THEN ps.totalValue END) * 100, 0), 2), '%') AS totalValueComparisonPercentage
+
+            FROM purchases ps
+            JOIN products p ON ps.productId = p.id
+            WHERE p.storeId = :storeId;`;
+    
+            const data = await sequelize.query(rawQuery, {
+                replacements: {storeId},
+                type: QueryTypes.SELECT
+            })
+    
+            return data[0]
+        } catch (error) {
+            console.error(error)
+            return null
+        }
+    }
+    
 
 }
 

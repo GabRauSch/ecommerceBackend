@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import Product from "../models/Products";
 import { applyDiscountValidation, discountValidation, productById, productCreation } from "../validation/ProductsValidation";
 import Category from "../models/Categories";
@@ -6,6 +6,8 @@ import Store from "../models/Stores";
 import PatternResponses from "../utils/PatternResponses";
 import { greaterDate, idValidation } from "../validation/globalValidation";
 import { Selections } from "../types/products/Selection";
+import { removeFile, setFileName, uploadFile } from "../utils/Files";
+import path from 'path';
 
 class ProductsController {
     public static async productById(req: Request, res: Response){
@@ -14,29 +16,52 @@ class ProductsController {
         const {error} = idValidation.validate(id)
         if (error) return res.status(400).json({ error: error.details[0].message });
 
-        const product = await Product.findByPk(id);
+        const product = await Product.findProduct(parseInt(id));
         if(!product) return PatternResponses.error.notFound(res, 'product')
 
         return res.json(product)
     } 
 
-    public static async createProduct(req: Request, res: Response){
+    public static async createProduct(req: Request, res: Response, next: NextFunction){
         const product = req.body;
+        const file = req.file;
 
+        if(!file) return PatternResponses.error.missingAttributes(res, 'Image');
         const {error} = productCreation.validate(product)
-        if (error) return res.status(400).json({ error: error.details[0].message });
-        
+        if (error){
+            removeFile(file.path)
+            return res.status(400).json({ error: error.details[0].message });
+        } 
         const [category, store] = await Promise.all([
             Category.findByPk(product.categoryId),
             Store.findByPk(product.storeId)
         ]);
-        if(!category) return PatternResponses.error.notFound(res, 'category')
-        if(!store) return PatternResponses.error.notFound(res, 'store')
-        if(category.storeId != product.storeId) return PatternResponses.error.doesntBelong(res, 'category', 'store')
-        if (await Product.findByName(product.name)) return PatternResponses.error.alreadyExists(res, 'product name');
+        if(!category){
+            removeFile(file.path)
+            return PatternResponses.error.notFound(res, 'category')
+        }
+        if(!store){
+            removeFile(file.path)
+            return PatternResponses.error.notFound(res, 'store')
+        }
+        if(category.storeId != product.storeId) {
+            removeFile(file.path);
+            return PatternResponses.error.doesntBelong(res, 'category', 'store')
+        }
+        if (await Product.findOne({where: {name: product.name, storeId: product.storeId}})) {
+            removeFile(file.path);
+            return PatternResponses.error.alreadyExists(res, 'product name for this store');
+        }
 
-        const productCreate = await Product.create(product);
-        if(!productCreate) return res.status(400).json({error: "The product hasn't been created"});
+        const image = setFileName();
+        await uploadFile(file, image);
+
+        const productCreate = await Product.create({...product, image});
+        if(!productCreate) {
+            const filePath = path.join(__dirname, '../../public/images', image)
+            removeFile(filePath)
+            return PatternResponses.error.notCreated(res, 'product')
+        };
         
         return PatternResponses.success.created(res,)
     }
@@ -130,10 +155,13 @@ class ProductsController {
 
     public static async productsByCategory(req: Request, res: Response){
         const {categoryId} = req.params;
+        const {rm} = req.query
         const {error} = idValidation.validate(categoryId)
         if (error) return PatternResponses.error.invalidAttributes(res, '', error.details[0].message);
 
-        const products = await Product.findByCategory(parseInt(categoryId));
+        const removeIds = (rm && typeof rm === 'string') ? parseInt(rm) : undefined
+
+        const products = await Product.findByCategory(parseInt(categoryId), removeIds);
         if(!products) return PatternResponses.error.noRegister(res);
 
         return res.json(products)
@@ -145,7 +173,12 @@ class ProductsController {
         const {error} = idValidation.validate(storeId);
         if (error) return PatternResponses.error.invalidAttributes(res, '', error.details[0].message);
 
-        const products = await Product.findByEndingDiscount(parseInt(storeId))
+        const products = await Product.findByEndingDiscount(parseInt(storeId));
+        if(!products) return PatternResponses.error.notFound(res, 'products');
+        const data = {
+            products
+        }
+        return res.json(products)
     }
 
     public static async mostPurchasedItems(req: Request, res: Response){
