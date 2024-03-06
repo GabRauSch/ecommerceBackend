@@ -8,7 +8,7 @@ router.get('/:id', ProductsController.productById);
 router.get('/all/:storeId', ProductsController.productByStoreId);
 router.get('/all/category/:categoryId', ProductsController.productsByCategory);
 router.get('/all/childs/:categoryId', ProductsController.productsAndChilds);
-router.get('/all/mostPurchased/items/:storeId', ProductsController.mostPurchasedItems);
+router.get('/all/mostPurchased/:storeId', ProductsController.mostPurchasedItems);
 router.get('/all/mostPurchased/category/:storeId', ProductsController.mostPurchasedInCategories);
 router.get('/discount/ending/:storeId', ProductsController.productByEndingDiscount)
 

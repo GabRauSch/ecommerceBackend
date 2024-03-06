@@ -19,6 +19,8 @@ import Purchase from './routes/Purchase';
 import { MulterError } from 'multer';
 import Admin from './routes/Admin'
 import PatternResponses from './utils/PatternResponses';
+import ReviewModel from './models/Reviews';
+import UsersModel from './models/Users';
 
 if(process.env.ENV == 'HOMOLOG'){
     ProductModel.sync()
@@ -26,6 +28,8 @@ if(process.env.ENV == 'HOMOLOG'){
     StoreModel.sync()   
     DiscountModel.sync()
     PurchaseModel.sync()
+    ReviewModel.sync()
+    UsersModel.sync()
 }
 
 const app = express();

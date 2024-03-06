@@ -1,5 +1,6 @@
 import { DataTypes, Model, Op, Optional, QueryTypes, where } from "sequelize";
 import sequelize from "../config/mysql";
+import { OrderBy, ProductOrderBy } from "../types/global/SQL";
 
 interface ProductAttributes {
     id: number;
@@ -29,6 +30,32 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
     public discountId!: number;
     public recommended!: boolean;
     public createdAt!: Date;
+
+    static async findAnalyticInfo(storeId: number, order: OrderBy, orderBy: ProductOrderBy): Promise<Product[] | null>{
+        try {
+            const rawQuery =  
+            `SELECT p.id, p.name, AVG(r.rating) AS evaluation, 
+            CASE WHEN p.discountId IS NOT NULL THEN TRUE ELSE FALSE END AS has_discount, SUM(ps.quantity) AS qt,
+            SUM(ps.totalValue) as totalValue
+                FROM products p
+            JOIN purchases ps ON ps.productId = p.id
+            JOIN discounts d on d.id = p.discountId
+            LEFT JOIN reviews r ON r.productId = p.id
+                WHERE p.storeId = :storeId
+            GROUP BY p.id
+            ORDER BY ${orderBy} ${order}
+                LIMIT 10`
+
+            const products: Product[] = await sequelize.query(rawQuery, {
+                replacements: {storeId, order},
+                type: QueryTypes.SELECT
+            })
+            return products
+        } catch (error) {
+            console.error(error);
+            return null
+        }
+    }
 
     static async findProduct(id: number): Promise<Product | null>{
         try {
@@ -123,10 +150,10 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
             SELECT p.id, p.name, p.image, p.unitPrice, p.description, d.discount, SUM(ps.quantity) AS qt
                 FROM products p
             JOIN purchases ps ON ps.productId = p.id
-            JOIN dicounts d on d.id = p.discountId
+            JOIN discounts d on d.id = p.discountId
                 WHERE p.storeId = :storeId
             GROUP BY p.id
-            ORDER BY qt desc
+            ORDER BY qt DESC
                 LIMIT 10`
 
             const products: Product[] = await sequelize.query(rawQuery, {

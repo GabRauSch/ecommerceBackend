@@ -87,12 +87,13 @@ class Error {
         return PatternResponses.createUnsuccessfullMessage(res, status, message)
     }
     static invalidAttributes = (res: Response, attributes: string | string[], message?: string)=>{
-        let attributesString = "";
+        let attributesString: string | string[] = "";
         if(Array.isArray(attributes) && !message){
             attributesString = attributes.join(", ")
+        } else{
+            attributesString = attributes
         }
-        let patternMessage = `Missing attributes: [${attributesString}]`
-        message = message ? message : patternMessage
+        message = `Invalid attributes: [${attributesString}]`
         const status = 400;
         return PatternResponses.createUnsuccessfullMessage(res, status, message)
     }

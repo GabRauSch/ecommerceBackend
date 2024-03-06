@@ -22,7 +22,7 @@ class ProductsController {
         return res.json(product)
     } 
 
-    public static async createProduct(req: Request, res: Response, next: NextFunction){
+    public static async createProduct(req: Request, res: Response){
         const product = req.body;
         const file = req.file;
 
