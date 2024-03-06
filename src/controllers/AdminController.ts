@@ -69,7 +69,7 @@ class AdminController {
    }
 
    public static analyticPurchaseInfo(req: Request, res: Response){
-
+      
    }   
 }
 

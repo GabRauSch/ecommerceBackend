@@ -65,7 +65,6 @@ class PurchaseController {
             return PatternResponses.error.notDeleted(res)
         }
     }
-
 }
 
 export default PurchaseController
