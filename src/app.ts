@@ -21,6 +21,7 @@ import Admin from './routes/Admin'
 import PatternResponses from './utils/PatternResponses';
 import ReviewModel from './models/Reviews';
 import UsersModel from './models/Users';
+import Review from './routes/Reviews';
 
 if(process.env.ENV == 'HOMOLOG'){
     ProductModel.sync()
@@ -49,6 +50,7 @@ app.use('/category', Category)
 app.use('/discount', Discount)
 app.use('/purchase', Purchase)
 app.use('/admin', Admin)
+app.use('/review', Review)
 
 app.use((req: Request, res: Response)=>{
     res.status(404)
