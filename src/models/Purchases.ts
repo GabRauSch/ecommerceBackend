@@ -76,7 +76,9 @@ class Purchase extends Model<PurchaseAttributes, PurchaseCreationAttributes> imp
     static async findAnalyticInfo(storeId: number, order: string, orderBy: string): Promise<Users[] | null>{
         try {
             const rawQuery = 
-            `SELECT u.id, u.name, SUM(ps.totalValue) AS totalValue, COUNT(ps.id) AS timesPurchased
+            `SELECT u.id, u.name, 
+            COUNT(ps.id) AS timesPurchased,
+            CONCAT('R$', FORMAT(SUM(ps.totalValue), 2)) AS totalValue
                 FROM purchases ps
             JOIN users u ON ps.userId = u.id
             JOIN products p ON p.id = ps.productId

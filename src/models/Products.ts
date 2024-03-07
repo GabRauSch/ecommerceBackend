@@ -34,17 +34,30 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
     static async findAnalyticInfo(storeId: number, order: OrderBy, orderBy: ProductOrderBy): Promise<Product[] | null>{
         try {
             const rawQuery =  
-            `SELECT p.id, p.name, AVG(r.rating) AS evaluation, 
-            CASE WHEN p.discountId IS NOT NULL THEN TRUE ELSE FALSE END AS has_discount, SUM(ps.quantity) AS qt,
-            SUM(ps.totalValue) as totalValue
-                FROM products p
-            JOIN purchases ps ON ps.productId = p.id
-            JOIN discounts d on d.id = p.discountId
-            LEFT JOIN reviews r ON r.productId = p.id
-                WHERE p.storeId = :storeId
-            GROUP BY p.id
-            ORDER BY ${orderBy} ${order}
-                LIMIT 10`
+            `SELECT 
+                p.id, 
+                p.name, 
+                CONCAT(IFNULL(FORMAT(AVG(r.rating), 2), '0'), ',00') AS evaluation, 
+                CASE 
+                    WHEN p.discountId IS NOT NULL THEN 'sim' 
+                    ELSE 'não' 
+                END AS has_discount, 
+                SUM(ps.quantity) AS qt,
+                CONCAT('R$', FORMAT(SUM(ps.totalValue), 2)) AS totalValue
+            FROM 
+                products p
+            JOIN 
+                purchases ps ON ps.productId = p.id
+            LEFT JOIN 
+                reviews r ON r.productId = p.id
+            WHERE 
+                p.storeId = :storeId
+            GROUP BY 
+                p.id, p.name, p.discountId
+            ORDER BY 
+                ${orderBy} ${order}
+            LIMIT 
+                10;`
 
             const products: Product[] = await sequelize.query(rawQuery, {
                 replacements: {storeId, order},
