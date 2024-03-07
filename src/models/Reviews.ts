@@ -7,7 +7,6 @@ interface ReviewAttributes {
     productId: number;
     rating: number;
     comment: string;
-    createdAt: Date;
 }
 
 interface ReviewCreationAttributes extends Optional<ReviewAttributes, 'id'> {}
@@ -18,7 +17,6 @@ class Review extends Model<ReviewAttributes, ReviewCreationAttributes> implement
     public productId!: number;
     public rating!: number;
     public comment!: string;
-    public createdAt!: Date;
 
     static async findByProductId(productId: number): Promise<Review[] | null>{
         try {
@@ -62,10 +60,6 @@ Review.init({
     },
     comment: {
         type: DataTypes.STRING,
-        allowNull: false
-    },
-    createdAt: {
-        type: DataTypes.DATE,
         allowNull: false
     }
 }, {
