@@ -32,9 +32,8 @@ class AdminController {
       }
 
       const datesObject = createDatesObject(startDateParsed.toString(), endDateParsed.toString());
-   
-      const overviewInfo = await Purchase.findOverviewInfo(parseInt(storeId), datesObject);
 
+      const overviewInfo = await Purchase.findOverviewInfo(parseInt(storeId), datesObject);
 
       return res.json(overviewInfo)
    }
@@ -50,7 +49,15 @@ class AdminController {
       if((analyse !== 'qt') && (analyse !== 'evaluation')) return PatternResponses.error.invalidAttributes(res, 'analyse')
 
       const products = await Product.findAnalyticInfo(parseInt(storeId), order, analyse);
-      return res.json(products)
+      if(!products) return PatternResponses.error.noRegister(res)
+
+      const dataTrasnformed = products.map((el)=>{
+         const {id, ...left} = el 
+         const info = Object.values(left)
+         return {id, info}
+      })
+
+      return res.json(dataTrasnformed)
   }
 
 
@@ -65,11 +72,18 @@ class AdminController {
       if(analyse !== 'totalValue') return PatternResponses.error.invalidAttributes(res, 'analyse')
 
       const products = await Purchase.findAnalyticInfo(parseInt(storeId), order, analyse);
-      return res.json(products)
+      if(!products) return PatternResponses.error.noRegister(res)
+
+      const dataTrasnformed = products.map((el)=>{
+         const {id, ...left} = el 
+         const info = Object.values(left)
+         return {id, info}
+      })
+      return res.json(dataTrasnformed)
    }
 
    public static analyticPurchaseInfo(req: Request, res: Response){
-      
+
    }   
 }
 

@@ -8,7 +8,7 @@ export const createDatesObject = (startDate: string, endDate: string): DatesObje
   endDate = `${end.getFullYear()}-${String(end.getUTCMonth() + 1).padStart(2, '0')}-${String(end.getUTCDate()).padStart(2, '0')}`;
 
   const pastMonthStart = new Date(start.getUTCFullYear(), start.getUTCMonth() -1, 1);
-  const pastMonthEnd = new Date(start.getUTCFullYear(), start.getUTCMonth() +1, 0);    
+  const pastMonthEnd = new Date(start.getUTCFullYear(), start.getUTCMonth(), 0);    
   
   const pastMonthStartDate = `${pastMonthStart.getUTCFullYear()}-${String(pastMonthStart.getUTCMonth() + 1).padStart(2, '0')}-01`;
   const pastMonthEndDate = `${pastMonthEnd.getUTCFullYear()}-${String(pastMonthEnd.getUTCMonth() + 1).padStart(2, '0')}-${String(pastMonthEnd.getUTCDate()).padStart(2, '0')}`;

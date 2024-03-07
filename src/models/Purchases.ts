@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional, QueryTypes } from "sequelize";
 import sequelize from "../config/mysql";
 import { DatesObject } from "../types/global/Dates";
+import Users from "./Users";
 
 interface PurchaseAttributes {
     id: number;
@@ -28,22 +29,37 @@ class Purchase extends Model<PurchaseAttributes, PurchaseCreationAttributes> imp
     static async findOverviewInfo(storeId: number, datesObject: DatesObject): Promise<any | null>{
         try {
             const rawQuery = 
-            `SELECT 
-                IFNULL(COUNT(ps.id), 0) AS purchasesCount, 
-                IFNULL(SUM(ps.totalValue), 0) AS totalValue, 
-                IFNULL(COUNT(ps.userId), 0) AS clientsCount, 
-                IFNULL(COUNT(CASE WHEN ps.createdAt >= :startDate AND ps.createdAt <= :endDate THEN ps.userId END), 0) AS clientsCountCurrentMonth, 
-                IFNULL(SUM(CASE WHEN ps.createdAt >= :startDate AND ps.createdAt <= :endDate THEN ps.totalValue END), 0) AS totalValueCurrentMonth, 
-                IFNULL(COUNT(CASE WHEN ps.createdAt >= :pastMonthStartDate AND ps.createdAt <= :pastMonthEndDate THEN ps.userId END), 0) AS clientsCountPastMonth, 
-                IFNULL(SUM(CASE WHEN ps.createdAt >= :pastMonthStartDate AND ps.createdAt <= :pastMonthEndDate THEN ps.totalValue END), 0) AS totalValuePastMonth,
-                CONCAT(FORMAT(IFNULL((SUM(CASE WHEN ps.createdAt >= :startDate 
-                    AND ps.createdAt <= :endDate THEN ps.totalValue END) - SUM(CASE WHEN ps.createdAt >= :pastMonthStartDate 
-                    AND ps.createdAt <= :pastMonthEndDate THEN ps.totalValue END)) / SUM(CASE WHEN ps.createdAt >= :pastMonthStartDate 
-                    AND ps.createdAt <= :pastMonthEndDate THEN ps.totalValue END) * 100, 0), 2), '%') AS totalValueComparisonPercentage
-
-            FROM purchases ps
-            JOIN products p ON ps.productId = p.id
-            WHERE p.storeId = :storeId;`;
+            `WITH MonthlyData AS (
+                SELECT 
+                    ps.id,
+                    ps.totalValue,
+                    ps.userId,
+                    CASE WHEN ps.createdAt BETWEEN :startDate AND :endDate THEN ps.totalValue ELSE 0 END AS currentMonthTotalValue,
+                    CASE WHEN ps.createdAt BETWEEN :startDate AND :endDate THEN ps.userId END AS currentMonthUserId,
+                    CASE WHEN ps.createdAt BETWEEN :pastMonthStartDate AND :pastMonthEndDate THEN ps.totalValue ELSE 0 END AS pastMonthTotalValue,
+                    CASE WHEN ps.createdAt BETWEEN :pastMonthStartDate AND :pastMonthEndDate THEN ps.userId END AS pastMonthUserId
+                FROM 
+                    purchases ps
+                JOIN 
+                    products p ON ps.productId = p.id
+                WHERE 
+                    p.storeId = :storeId
+            )
+            
+            SELECT 
+                COUNT(id) AS purchasesCount, 
+                SUM(totalValue) AS totalValue, 
+                COUNT(DISTINCT userId) AS clientsCount, 
+                SUM(currentMonthTotalValue) AS totalValueCurrentMonth, 
+                COUNT(DISTINCT currentMonthUserId) AS clientsCountCurrentMonth, 
+                SUM(pastMonthTotalValue) AS totalValuePastMonth, 
+                COUNT(DISTINCT pastMonthUserId) AS clientsCountPastMonth, 
+                CONCAT(FORMAT(IFNULL((SUM(currentMonthTotalValue) - SUM(pastMonthTotalValue)) / NULLIF(SUM(pastMonthTotalValue), 0) * 100, 0), 2), '%') AS totalValueComparisonPercentage, 
+                CONCAT(FORMAT(IFNULL((COUNT(DISTINCT currentMonthUserId) - COUNT(DISTINCT pastMonthUserId)) / NULLIF(COUNT(DISTINCT pastMonthUserId), 0) * 100, 0), 2), '%') AS clientsComparisonPercentage
+            FROM 
+                MonthlyData;
+            ;
+        `;
     
             const data = await sequelize.query(rawQuery, {
                 replacements: {storeId, ...datesObject},
@@ -57,10 +73,10 @@ class Purchase extends Model<PurchaseAttributes, PurchaseCreationAttributes> imp
         }
     }
 
-    static async findAnalyticInfo(storeId: number, order: string, orderBy: string): Promise<any | null>{
+    static async findAnalyticInfo(storeId: number, order: string, orderBy: string): Promise<Users[] | null>{
         try {
             const rawQuery = 
-            `SELECT u.name, SUM(ps.totalValue) AS totalValue, COUNT(ps.id) AS timesPurchased
+            `SELECT u.id, u.name, SUM(ps.totalValue) AS totalValue, COUNT(ps.id) AS timesPurchased
                 FROM purchases ps
             JOIN users u ON ps.userId = u.id
             JOIN products p ON p.id = ps.productId
@@ -68,7 +84,7 @@ class Purchase extends Model<PurchaseAttributes, PurchaseCreationAttributes> imp
                 GROUP BY userId
                 ORDER BY  ${orderBy} ${order}
                 LIMIT 10`
-            const clients = await sequelize.query(rawQuery, {
+            const clients: Users[] = await sequelize.query(rawQuery, {
                 replacements: {storeId},
                 type: QueryTypes.SELECT
             })
