@@ -31,19 +31,19 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
     public recommended!: boolean;
     public createdAt!: Date;
 
-    static async findAnalyticInfo(storeId: number, order: OrderBy, orderBy: ProductOrderBy): Promise<Product[] | null>{
+    static async findAnalyticInfo(storeId: number): Promise<Product[] | null>{
         try {
             const rawQuery =  
             `SELECT 
                 p.id, 
                 p.name, 
-                CONCAT(IFNULL(FORMAT(AVG(r.rating), 2), '0'), ',00') AS evaluation, 
+                FORMAT(IFNULL(AVG(r.rating), 0), 2, 'de_DE') AS evaluation, 
                 CASE 
                     WHEN p.discountId IS NOT NULL THEN 'sim' 
                     ELSE 'não' 
                 END AS has_discount, 
                 SUM(ps.quantity) AS qt,
-                CONCAT('R$', FORMAT(SUM(ps.totalValue), 2)) AS totalValue
+                CONCAT('R$', REPLACE(FORMAT(SUM(ps.totalValue), 2, 'de_DE'), '.', '')) AS totalValue
             FROM 
                 products p
             JOIN 
@@ -53,14 +53,10 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
             WHERE 
                 p.storeId = :storeId
             GROUP BY 
-                p.id, p.name, p.discountId
-            ORDER BY 
-                ${orderBy} ${order}
-            LIMIT 
-                10;`
+                p.id, p.name, p.discountId`
 
             const products: Product[] = await sequelize.query(rawQuery, {
-                replacements: {storeId, order},
+                replacements: {storeId},
                 type: QueryTypes.SELECT
             })
             return products
@@ -69,7 +65,28 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
             return null
         }
     }
-
+    static async findAllInfo(storeId: number): Promise<any | null>{
+        try {
+            const rawQuery = 
+            `SELECT p.id, image, p.name AS productName, unitPrice, discount, 
+                (unitPrice + unitPrice * discount) AS finalPrice, stockQuantity, COUNT(ps.id) AS purchaseCount, c.name AS categoryName
+                FROM products p
+                JOIN discounts d ON d.id = p.discountId
+                JOIN categories c ON c.id = p.categoryId
+                JOIN purchases ps ON ps.productId = p.id
+                WHERE p.storeId = :storeId
+                GROUP BY p.id;`
+            const info = await sequelize.query(rawQuery, {
+                replacements: {storeId},
+                type: QueryTypes.SELECT
+            })
+            console.log(info)
+            return info
+        } catch (error) {
+            console.error(error);
+            return null
+        }
+    }
     static async findProduct(id: number): Promise<Product | null>{
         try {
             const rawQuery = `SELECT p.id, p.name, p.image, p.description, p.categoryId, (p.unitPrice - p.unitPrice * d.discount / 100) AS discountPrice , p.unitPrice AS originalPrice

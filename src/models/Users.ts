@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional } from "sequelize";
+import { DataTypes, Model, Optional, QueryTypes } from "sequelize";
 import sequelize from "../config/mysql";
 
 export interface UserAttributes {
@@ -43,6 +43,67 @@ class Users extends Model<UserAttributes, UserCreationAttributes> implements Use
             return null
         }
     }
+    static async findClientsOverView(storeId: number): Promise<any | null>{
+        try {
+            const rawQuery = 
+            `SELECT 
+                COUNT(DISTINCT userId) AS clientsCount,
+                AVG(totalValue) AS avaragePurchase,
+                MAX(totalValue) AS greaterPurhase,
+                (SELECT u.name
+                    FROM purchases ps
+                    INNER JOIN users u ON ps.userId = u.id
+                    WHERE ps.totalValue = (SELECT MAX(totalValue) FROM purchases)
+                ) AS bestClient
+            FROM purchases ps
+            JOIN products p ON p.id = ps.productId
+            WHERE p.storeId = :storeId;`
+
+            const clientsOverView = await sequelize.query(rawQuery, {
+                replacements: {storeId},
+                type: QueryTypes.SELECT
+            }) 
+            return clientsOverView[0]            
+        } catch (error) {
+            console.error(error);
+            return null
+        }
+    }
+    static async findClients(storeId: number): Promise<any[] | null>{
+        try {
+            const rawQuery = 
+            `WITH RankedPurchases AS (
+                SELECT 
+                    u.id AS id,
+                    u.name AS userName, 
+                    COUNT(ps.id) AS purchaseAmount,
+                    TIMESTAMPDIFF(DAY, MIN(ps.createdAt), NOW()) AS firstPurchase,
+                    TIMESTAMPDIFF(DAY, MAX(ps.createdAt), NOW()) AS lastPurchase,
+                    CONCAT('R$', REPLACE(FORMAT(SUM(ps.totalValue), 2, 'de_DE'), '.', '')) AS totalValue, 
+                    ROW_NUMBER() OVER (PARTITION BY u.id ORDER BY MAX(ps.createdAt) DESC) AS row_num
+                FROM purchases ps
+                JOIN users u ON u.id = ps.userId
+                GROUP BY u.id, u.name
+            )
+            SELECT 
+                id, userName, purchaseAmount, firstPurchase, lastPurchase, totalValue
+            FROM 
+                RankedPurchases
+            WHERE 
+                row_num = :storeId;`
+
+            const clients: any[] = await sequelize.query(rawQuery, {
+                replacements: {storeId},
+                type: QueryTypes.SELECT
+            })
+
+            return clients
+        } catch (error) {
+            console.error(error);
+            return null
+        }
+    }   
+
     // static async GetUserInfo(userId: number): Promise<any | null>{
     //     try {
     //         const rawQuery = `

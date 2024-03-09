@@ -26,9 +26,11 @@ class PurchaseController {
             productName: purchaseInfo.name,
             productImage: purchaseInfo.image,
             quantity, 
+            delivered: 0,
             totalValue: purchaseInfo.unitPrice * quantity - purchaseInfo.discount,
             userId,
-            pendent: true
+            aproved: 0,
+            error: null
         }
         console.log(data)
 
@@ -47,7 +49,7 @@ class PurchaseController {
         const purchase = await Purchase.findByPk(purchaseId, {attributes: ['id']});
         if(!purchase) return PatternResponses.error.noRegister(res);
 
-        purchase.update({pendent: false})
+        purchase.update({aproved: 1})
     }
     static async removePurchase(req: Request, res: Response){
         const {purchaseId} = req.params;

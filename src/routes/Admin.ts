@@ -7,6 +7,10 @@ const router = Router();
 router.get('/overview/:storeId', AdminController.overview);
 router.get('/products/analyticInfo/:storeId', AdminController.analyticProductInfo)
 router.get('/clients/analyticInfo/:storeId', AdminController.analyticClientInfo)
-router.get('/purchase/analyticInfo/:storeId', AdminController.analyticPurchaseInfo)
+router.get('/sales/overView/:storeId', AdminController.salesOverView)
+router.get('/sales/:storeId', AdminController.analyticSales)
+router.get('/clients/overView/:storeId', AdminController.clientsOverView)
+router.get('/clients/:storeId', AdminController.analyticClients)
+router.get('/products/allInfo/:storeId', AdminController.productsAllinfo)
 
 export default router

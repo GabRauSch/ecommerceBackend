@@ -5,7 +5,7 @@ import { upload } from "../config/multer";
 const router = Router();
 
 router.get('/:id', ProductsController.productById);
-router.get('/all/:storeId', ProductsController.productByStoreId);
+router.get('/all/:storeId', ProductsController.productsByStoreId);
 router.get('/all/category/:categoryId', ProductsController.productsByCategory);
 router.get('/all/childs/:categoryId', ProductsController.productsAndChilds);
 router.get('/all/mostPurchased/:storeId', ProductsController.mostPurchasedItems);

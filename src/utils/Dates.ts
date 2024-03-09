@@ -20,3 +20,10 @@ export const createDatesObject = (startDate: string, endDate: string): DatesObje
     pastMonthEndDate
   }
 }
+
+export const getIntervalFromDate = (intervalTime: number)=>{
+  if (intervalTime / 365 > 1) return `${Math.round(intervalTime / 365)} ${intervalTime > 730 ? 'anos' : 'ano'} atrás`;
+  if (intervalTime / 30 > 1) return `${Math.round(intervalTime / 30)} ${intervalTime > 58 ? 'meses' : 'mês'} atrás`;
+  if (intervalTime > 1) return `${intervalTime} dias atrás`
+  return `${intervalTime} dia atrás`
+}

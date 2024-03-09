@@ -141,7 +141,7 @@ class ProductsController {
         return PatternResponses.success.deleted(res)
     }
 
-    public static async productByStoreId(req: Request, res: Response){
+    public static async productsByStoreId(req: Request, res: Response){
         const {storeId} = req.params;
 
         const {error} = idValidation.validate(storeId)

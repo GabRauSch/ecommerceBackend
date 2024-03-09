@@ -9,9 +9,11 @@ interface PurchaseAttributes {
     productName: string;
     productImage: string;
     quantity: number;
+    delivered: number;
     totalValue: number;
     userId: number;
-    pendent: boolean;
+    aproved: number;
+    error: string | null
 }
 
 interface PurchaseCreationAttributes extends Optional<PurchaseAttributes, 'id'> {}
@@ -22,12 +24,34 @@ class Purchase extends Model<PurchaseAttributes, PurchaseCreationAttributes> imp
     public productName!: string;
     public productImage!: string;
     public quantity!: number;
+    public delivered!: number;
     public totalValue!: number;
     public userId!: number;
-    public pendent!: boolean;
+    public aproved!: number;
+    public error!: string | null
+
+    static async findAllOverViewInfo(storeId: number): Promise<any | null>{
+        try {
+            const rawQuery = 
+            `SELECT Sum(ps.totalValue) AS totalValue, COUNT(ps.id) AS purchasesCount, COUNT(distinct ps.userId) AS totalClients
+            FROM purchases ps
+            JOIN products p ON p.id = ps.productId
+            WHERE p.storeId = :storeId`
+
+            const overview = await sequelize.query(rawQuery, {
+                replacements: {storeId},
+                type: QueryTypes.SELECT
+            })
+            return overview[0]
+        } catch (error) {
+            console.error(error);
+            return null
+        }
+    }
 
     static async findOverviewInfo(storeId: number, datesObject: DatesObject): Promise<any | null>{
         try {
+            console.log(datesObject)
             const rawQuery = 
             `WITH MonthlyData AS (
                 SELECT 
@@ -49,13 +73,13 @@ class Purchase extends Model<PurchaseAttributes, PurchaseCreationAttributes> imp
             SELECT 
                 COUNT(id) AS purchasesCount, 
                 SUM(totalValue) AS totalValue, 
-                COUNT(DISTINCT userId) AS clientsCount, 
+                COUNT(DISTINCT userId) AS totalClients, 
                 SUM(currentMonthTotalValue) AS totalValueCurrentMonth, 
                 COUNT(DISTINCT currentMonthUserId) AS clientsCountCurrentMonth, 
                 SUM(pastMonthTotalValue) AS totalValuePastMonth, 
                 COUNT(DISTINCT pastMonthUserId) AS clientsCountPastMonth, 
-                CONCAT(FORMAT(IFNULL((SUM(currentMonthTotalValue) - SUM(pastMonthTotalValue)) / NULLIF(SUM(pastMonthTotalValue), 0) * 100, 0), 2), '%') AS totalValueComparisonPercentage, 
-                CONCAT(FORMAT(IFNULL((COUNT(DISTINCT currentMonthUserId) - COUNT(DISTINCT pastMonthUserId)) / NULLIF(COUNT(DISTINCT pastMonthUserId), 0) * 100, 0), 2), '%') AS clientsComparisonPercentage
+                CONCAT(FORMAT(IFNULL((SUM(currentMonthTotalValue) - SUM(pastMonthTotalValue)) / NULLIF(SUM(pastMonthTotalValue), 0) * 100, 0), 2), '%') AS pastPeriod, 
+                IFNULL((COUNT(DISTINCT currentMonthUserId) - COUNT(DISTINCT pastMonthUserId)), 0) AS newClients
             FROM 
                 MonthlyData;
             ;
@@ -73,19 +97,17 @@ class Purchase extends Model<PurchaseAttributes, PurchaseCreationAttributes> imp
         }
     }
 
-    static async findAnalyticInfo(storeId: number, order: string, orderBy: string): Promise<Users[] | null>{
+    static async findAnalyticInfo(storeId: number): Promise<Users[] | null>{
         try {
             const rawQuery = 
             `SELECT u.id, u.name, 
             COUNT(ps.id) AS timesPurchased,
-            CONCAT('R$', FORMAT(SUM(ps.totalValue), 2)) AS totalValue
+            CONCAT('R$', REPLACE(FORMAT(SUM(ps.totalValue), 2, 'de_DE'), '.', '')) AS totalValue
                 FROM purchases ps
             JOIN users u ON ps.userId = u.id
             JOIN products p ON p.id = ps.productId
             WHERE p.storeId = :storeId
-                GROUP BY userId
-                ORDER BY  ${orderBy} ${order}
-                LIMIT 10`
+                GROUP BY userId`
             const clients: Users[] = await sequelize.query(rawQuery, {
                 replacements: {storeId},
                 type: QueryTypes.SELECT
@@ -97,8 +119,56 @@ class Purchase extends Model<PurchaseAttributes, PurchaseCreationAttributes> imp
             return null
         }
     }
-    
-
+    static async findSales(storeId: number): Promise<any|null>{
+        try {
+            const rawQuery = 
+            `SELECT 
+                ps.id, u.name AS client, p.name AS product, 
+                CONCAT('R$', REPLACE(FORMAT(SUM(ps.totalValue), 2, 'de_DE'), '.', '')) AS totalValue, 
+                p.stockQuantity,
+                (case when ps.error IS NOT NULL then 'Com erro'  when ps.delivered = 0 then 'Pendente de entrega' ELSE 'Entregue' END) AS status,
+                (case when ps.error IS NOT NULL then ps.error 
+                when p.stockQuantity = 0 then 'Sem itens no estoque' when ps.delivered = 0 then 'Não entregue' ELSE '' END) AS info
+            FROM purchases ps
+            JOIN products p ON p.id = ps.productId
+            JOIN users u ON u.id = ps.userId
+            WHERE p.storeId = 1
+            GROUP BY ps.id`
+            const sales: any = await sequelize.query(rawQuery, {
+                replacements: {storeId},
+                type: QueryTypes.SELECT
+            })
+            return sales
+        } catch (error) {
+            console.error(error);
+            return null
+        }
+    }
+    static async findAnalyticSales(storeId: number): Promise<any | null>{
+        try {
+            const rawQuery = 
+            `SELECT 
+                COUNT(ps.id) as purchasesCount, 
+                COUNT(CASE WHEN ps.delivered = 1 THEN 1 END) AS delivered,
+                COUNT(case when ps.delivered = 0 then 1 END) AS pendentDelivery,
+                COUNT(case when ps.aproved = 0 then 1 end) AS aproved,
+                COUNT(ps.error) AS error
+            FROM 
+                purchases ps
+            JOIN 
+                products p ON p.id = ps.productId
+            WHERE 
+                p.storeId = :storeId;`
+            const sales: any = await sequelize.query(rawQuery, {
+                replacements: {storeId},
+                type: QueryTypes.SELECT
+            })
+            return sales[0]
+        } catch (error) {
+            console.error(error);
+            return null
+        }
+    }
 }
 
 Purchase.init({
@@ -123,6 +193,10 @@ Purchase.init({
         type: DataTypes.INTEGER,
         allowNull: false
     },
+    delivered: {
+        type: DataTypes.TINYINT,
+        allowNull: false
+    },
     totalValue: {
         type: DataTypes.FLOAT,
         allowNull: false
@@ -131,9 +205,12 @@ Purchase.init({
         type: DataTypes.INTEGER,
         allowNull: false
     },
-    pendent: {
-        type: DataTypes.BOOLEAN,
+    aproved: {
+        type: DataTypes.TINYINT,
         allowNull: false
+    },
+    error: {
+        type: DataTypes.STRING
     }
 }, {
     sequelize,
