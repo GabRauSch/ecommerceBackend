@@ -27,5 +27,17 @@ class ReviewController{
         
         return PatternResponses.success.created(res)       
     }
+
+    public static async findReviewsByProductId(req: Request, res: Response){
+        const {productId} = req.params;
+
+        const {error} = idValidation.validate(productId)
+        if (error) return res.status(400).json({ error: error.details[0].message });
+
+        const reviews = await Review.findByProductId(parseInt(productId));
+        if(!reviews) return PatternResponses.error.noRegister(res);
+
+        return res.json(reviews)
+    } 
 }
 export default ReviewController

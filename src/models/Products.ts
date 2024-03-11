@@ -121,6 +121,7 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
             alreadyRetrieved = alreadyRetrieved ? alreadyRetrieved : 0;
             const rawQuery = 
             `SELECT 
+                p.id,
                 p.name, 
                 p.image, 
                 p.description, 
@@ -132,8 +133,7 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
                 END AS originalPrice
             FROM 
                 products p
-            LEFT JOIN 
-                discounts d ON d.id = p.discountId
+            LEFT JOIN discounts d ON d.id = p.discountId
             WHERE 
                 p.categoryId = :categoryId
                 AND p.id NOT IN (:alreadyRetrieved)
@@ -177,7 +177,12 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
     static async findMostPurchasedItems(storeId: number): Promise<Product[]| null>{
         try {
             const rawQuery = `
-            SELECT p.id, p.name, p.image, p.unitPrice, p.description, d.discount, SUM(ps.quantity) AS qt
+            SELECT p.id, p.name, p.image, p.description,
+            COALESCE(p.unitPrice - p.unitPrice * d.discount / 100, p.unitPrice) AS discountPrice,
+            CASE 
+                WHEN d.discount IS NULL THEN NULL 
+                ELSE p.unitPrice 
+            END AS originalPrice, SUM(ps.quantity) AS qt
                 FROM products p
             JOIN purchases ps ON ps.productId = p.id
             JOIN discounts d on d.id = p.discountId
@@ -266,16 +271,18 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
         }
     }
 
-    static async findByEndingDiscount(storeId: number): Promise<Product[] | null>{
+    static async findByEndingDiscount(storeId: number): Promise<any[] | null>{
         try {   
             const rawQuery = `
-            SELECT p.image, p.name, d.discount, d.discountName, d.endDate FROM products p 
+            SELECT p.id, p.image, p.name, d.discount, d.discountName, d.endDate 
+                FROM products p 
                 JOIN discounts d ON d.id = p.discountId
-            WHERE discountName IS NOT NULL
-                AND storeId = :storeId
-                ORDER BY d.endDate asc
-                LIMIT 4
-            `
+            WHERE d.discountName IS NOT NULL
+                AND d.endDate > CURRENT_DATE
+                AND p.storeId = :storeId
+            ORDER BY 
+                d.endDate ASC
+            LIMIT 4;`
             const products: Product[] = await sequelize.query(rawQuery, {
                 replacements: {storeId},
                 type: QueryTypes.SELECT

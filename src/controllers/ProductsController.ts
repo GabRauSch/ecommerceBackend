@@ -174,11 +174,16 @@ class ProductsController {
         if (error) return PatternResponses.error.invalidAttributes(res, '', error.details[0].message);
 
         const products = await Product.findByEndingDiscount(parseInt(storeId));
-        if(!products) return PatternResponses.error.notFound(res, 'products');
+        if(!products || products.length == 0) return PatternResponses.error.notFound(res, 'products');
+        const { discountName, discount, endDate } = products[0];
         const data = {
-            products
-        }
-        return res.json(products)
+            discountName,
+            discount,
+            endDate,
+            products: products.map(({ discountName, discount, endDate, ...productRest }) => productRest)
+        };
+
+        return res.json(data)
     }
 
     public static async mostPurchasedItems(req: Request, res: Response){
