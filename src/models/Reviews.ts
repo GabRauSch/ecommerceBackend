@@ -18,13 +18,15 @@ class Review extends Model<ReviewAttributes, ReviewCreationAttributes> implement
     public rating!: number;
     public comment!: string;
 
-    static async findByProductId(productId: number): Promise<Review[] | null>{
+    static async findByProductId(productId: number): Promise<any[] | null>{
         try {
             const rawQuery = 
-                `SELECT u.name, r.rating, r.comment, r.createdAt 
+                `SELECT u.name, r.rating, r.comment,
+                TIMESTAMPDIFF(DAY, MIN(r.createdAt), NOW()) AS createdAt
                 FROM reviews r
                     JOIN users u ON r.userId = u.id
-                WHERE r.productId = :productId;` 
+                WHERE r.productId = :productId
+                GROUP BY r.id;` 
 
             const reviews: Review[] = await sequelize.query(rawQuery, {
                 replacements: {productId},

@@ -155,10 +155,26 @@ class AdminController {
       const dataTrasnformed = products.map((el: any)=>{
          const {id, ...left} = el;
 
-         const info = Object.values(left)
+         const info = Object.values(el)
          return {id, info}
       })
 
+      return res.json(dataTrasnformed)
+   }
+
+   static async wareHouse(req: Request, res: Response){
+      const {storeId} = req.params;
+
+      const {error} = idValidation.validate(storeId);
+      if(error) return res.status(400).json({error: error.details[0].message})
+
+      const wareHouseInfo = await Product.findStockInfo(parseInt(storeId))
+      if(!wareHouseInfo) return PatternResponses.error.noRegister(res);
+      const dataTrasnformed = wareHouseInfo.map((el)=>{
+         const {id, ...left} = el 
+         const info = Object.values(el)
+         return {id, info}
+      })
       return res.json(dataTrasnformed)
    }
 }

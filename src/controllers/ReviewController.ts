@@ -4,6 +4,7 @@ import { Request, Response } from "express";
 import productId from "../models/Reviews";
 import { createReviewValidation } from "../validation/ReviewValidation";
 import Review from "../models/Reviews";
+import { getIntervalFromDate } from "../utils/Dates";
 
 class ReviewController{
 
@@ -37,7 +38,16 @@ class ReviewController{
         const reviews = await Review.findByProductId(parseInt(productId));
         if(!reviews) return PatternResponses.error.noRegister(res);
 
-        return res.json(reviews)
+        const data = reviews.map((review)=>{
+            const {createdAt, ...left} = review;
+            const timePosted = getIntervalFromDate(createdAt)
+            return {
+                ...left,
+                timePosted
+            }
+        })
+
+        return res.json(data)
     } 
 }
 export default ReviewController

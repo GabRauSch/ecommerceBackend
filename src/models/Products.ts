@@ -65,6 +65,36 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
             return null
         }
     }
+    static async findStockInfo(storeId: number): Promise<Product[] | null>{
+        try {
+            const rawQuery = 
+            `SELECT id, name, stockQuantity, orders, 
+                    (stockQuantity - orders) AS estipulated,
+                    CASE 
+                        WHEN (stockQuantity - orders) < orders
+                        THEN 'compra'
+                        ELSE 'normal'
+                    END AS status
+            FROM (
+                SELECT p.id, p.name, p.stockQuantity,
+                        COALESCE(SUM(CASE WHEN ps.delivered = 0 THEN ps.quantity ELSE 0 END), 0) AS orders
+                FROM products p
+                LEFT JOIN purchases ps ON p.id = ps.productId
+                WHERE p.stockQuantity != 0
+                AND p.storeId = :storeId
+                GROUP BY p.id, p.name, p.stockQuantity
+            ) AS subquery;
+            `
+            const products: Product[] = await sequelize.query(rawQuery, {
+                replacements: {storeId},
+                type: QueryTypes.SELECT
+            });
+            return products 
+        } catch (error) {
+            console.error(error);
+            return null
+        }
+    }
     static async findAllInfo(storeId: number): Promise<any | null>{
         try {
             const rawQuery = 
@@ -89,9 +119,14 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
     }
     static async findProduct(id: number): Promise<Product | null>{
         try {
-            const rawQuery = `SELECT p.id, p.name, p.image, p.description, p.categoryId, (p.unitPrice - p.unitPrice * d.discount / 100) AS discountPrice , p.unitPrice AS originalPrice
+            const rawQuery = `SELECT p.id, p.name, p.image, p.description, p.categoryId, 
+            COALESCE(p.unitPrice - p.unitPrice * d.discount / 100, p.unitPrice) AS discountPrice,
+            CASE 
+                WHEN d.discount IS NULL THEN NULL 
+                ELSE p.unitPrice 
+            END AS originalPrice
             FROM products p
-            JOIN discounts d ON d.id = p.discountId
+            LEFT JOIN discounts d ON d.id = p.discountId
             WHERE p.id = :id`
 
             const product: any[] = await sequelize.query(rawQuery, {
@@ -105,7 +140,6 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
             return null
         }
     }
-
     static async findByName(name: string): Promise<Product | null> {
         try {
             const product = await Product.findOne({ where: { name } });
@@ -115,7 +149,6 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
             return null;
         }
     }
-
     static async findByCategory(categoryId: number, alreadyRetrieved?: number): Promise<Product[] | null>{
         try {
             alreadyRetrieved = alreadyRetrieved ? alreadyRetrieved : 0;
@@ -202,7 +235,6 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
             return null;            
         }
     }
-
     static async findMostPurchasedItemByCategories(storeId: number): Promise<Product[]| null>{
         try {
             const rawQuery = `
@@ -270,7 +302,6 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
             return false;
         }
     }
-
     static async findByEndingDiscount(storeId: number): Promise<any[] | null>{
         try {   
             const rawQuery = `
@@ -294,8 +325,6 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
             return null;            
         }
     }
-
-
     static async findInfoForPurchase(productId: number): Promise<any| null>{
         try {
             const rawQuery = 
@@ -315,7 +344,6 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
             return null
         }
     }
-
     static async searchProducts(search: string, categoryId: number): Promise<Product[] | null>{
         try {
             const firstLayerQuery = `SELECT * FROM products
