@@ -5,4 +5,4 @@ export const createReviewValidation = Joi.object({
     productId:Joi.number().min(0).required(),
     rating: Joi.number().min(0).max(5).required(),
     comment: Joi.string(),
-    })
+})

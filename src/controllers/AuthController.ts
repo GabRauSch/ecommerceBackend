@@ -20,9 +20,7 @@ class AuthController {
         const {email, password, customName} = req.body;
     
         const nameIsTaken = await UsersModel.userByName(customName);
-        if(nameIsTaken){
-            return PatternResponses.error.alreadyExists(res, 'user with this name')
-        }
+        if(nameIsTaken) return PatternResponses.error.alreadyExists(res, 'user with this name') 
     
         const userExists = await UsersModel.userByEmail(email);
         if(userExists && !userExists.name){

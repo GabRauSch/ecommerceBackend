@@ -25,7 +25,23 @@ class Category extends Model<CategoryAttributes, CategoryCreationAttributes> imp
                     parentCategoryId: 0
                 },
                 limit: 6, 
-                attributes: ["name"]
+                attributes: ['id', 'name']
+            })
+            return categories
+        } catch (error) {
+            console.error(error);
+            return null
+        }
+    }
+    static async findCategories(storeId: number, categoryId: number): Promise<Category[] | null>{
+        try {
+            const categories = await Category.findAll({
+                where: {
+                    storeId,
+                    parentCategoryId: categoryId
+                },
+                limit: 6, 
+                attributes: ['id', 'name']
             })
             return categories
         } catch (error) {

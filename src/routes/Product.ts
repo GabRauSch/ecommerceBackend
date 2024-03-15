@@ -10,7 +10,9 @@ router.get('/all/category/:categoryId', ProductsController.productsByCategory);
 router.get('/all/childs/:categoryId', ProductsController.productsAndChilds);
 router.get('/all/mostPurchased/:storeId', ProductsController.mostPurchasedItems);
 router.get('/all/mostPurchased/category/:storeId', ProductsController.mostPurchasedInCategories);
-router.get('/discount/ending/:storeId', ProductsController.productByEndingDiscount)
+router.get('/discount/ending/:storeId', ProductsController.productByEndingDiscount);
+router.get('/search/suggestions/:storeId/:categoryId', ProductsController.searchSuggestion);
+router.get('/search/:storeId/:categoryId', ProductsController.search);
 
 router.post('/create', upload.single('image'), ProductsController.createProduct)
 

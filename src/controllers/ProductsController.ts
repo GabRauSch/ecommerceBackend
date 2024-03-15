@@ -21,6 +21,40 @@ class ProductsController {
 
         return res.json(product)
     } 
+    public static async searchSuggestion(req: Request, res: Response){
+        const {storeId, categoryId} = req.params;
+        const {search} = req.query
+
+        const {error} = idValidation.validate(storeId);
+        if (error) return res.status(400).json({ error: error.details[0].message });
+        
+        if(!search || typeof search != 'string'||search.length > 50) return PatternResponses.error.invalidAttributes(res, 'search');
+        
+        const suggestions = await Product.findSuggestions(parseInt(storeId), parseInt(categoryId), search);
+        if(!suggestions) return PatternResponses.error.noRegister(res);
+
+        const data = suggestions.map(suggestion=>suggestion.name)
+
+        return res.json(data)
+    }
+    public static async search(req: Request, res: Response){
+        const {storeId, categoryId} = req.params;
+        const {search} = req.query;
+
+        const {error} = idValidation.validate(categoryId);
+        if (error) return res.status(400).json({ error: error.details[0].message });
+        
+        if(!search) {
+            const searchResults = await Product.searchProducts(parseInt(storeId), parseInt(categoryId), '');
+            return res.json(searchResults)
+        }
+
+        if(typeof search != 'string'||search.length > 50) return PatternResponses.error.invalidAttributes(res, 'search');
+
+        const searchResults = await Product.searchProducts(parseInt(storeId), parseInt(categoryId), search);
+
+        return res.json(searchResults)
+    }
 
     public static async createProduct(req: Request, res: Response){
         const product = req.body;

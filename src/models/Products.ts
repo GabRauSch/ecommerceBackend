@@ -1,6 +1,7 @@
 import { DataTypes, Model, Op, Optional, QueryTypes, where } from "sequelize";
 import sequelize from "../config/mysql";
 import { OrderBy, ProductOrderBy } from "../types/global/SQL";
+import Users from "./Users";
 
 interface ProductAttributes {
     id: number;
@@ -343,69 +344,143 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
             console.error(error);
             return null
         }
-    }
-    static async searchProducts(search: string, categoryId: number): Promise<Product[] | null>{
+    }    
+    static async findSuggestions(storeId: number, categoryId: number,  search: string): Promise<Product[] | null>{
         try {
-            const firstLayerQuery = `SELECT * FROM products
-                WHERE MATCH(name, description) AGAINST(':search' IN BOOLEAN MODE)
-                AND categoryId = :categoryId`
+            const rawQuery = 
+            `SELECT p.name 
+                FROM products p
+                JOIN categories c ON c.id = p.categoryId
+            WHERE p.storeId = :storeId 
+            AND (p.categoryId = :categoryId OR c.parentCategoryId = :categoryId)
+                AND p.name LIKE :search 
+            LIMIT 5`
+            const suggestions: Product[] = await sequelize.query(rawQuery, {
+                replacements: {storeId, categoryId, search: `${search}%`},
+                type: QueryTypes.SELECT
+            })
+
+            return suggestions
+        } catch (error) {
+            console.error(error);
+            return null
+        }
+    }
+    static async searchProducts(storeId: number, categoryId: number, search: string): Promise<Product[] | null>{
+        try {
+            const firstLayerQuery = `SELECT
+                p.id, p.image, p.name,
+                COALESCE(p.unitPrice - p.unitPrice * d.discount / 100, p.unitPrice) AS discountPrice,
+                CASE 
+                    WHEN d.discount IS NULL THEN NULL 
+                    ELSE p.unitPrice 
+                END AS originalPrice,
+                p.description, p.categoryId
+            FROM products p 
+            LEFT JOIN discounts d on d.id = p.discountId
+            JOIN categories c ON p.categoryId = c.id
+                WHERE MATCH(p.name, p.DESCRIPTION) AGAINST(:search IN BOOLEAN MODE)
+                AND (categoryId = :categoryId OR c.parentCategoryId = :categoryId)
+                AND p.storeId = :storeId
+            GROUP BY p.id
+            ORDER BY MATCH(p.name, p.description) AGAINST(:search IN BOOLEAN MODE) DESC, 
+                categoryId DESC ;`
 
             const firstLayerProducts: Product[] = await sequelize.query(
                 firstLayerQuery,
                 {
-                    replacements: { search: `%${search}%` },
+                    replacements: { search: `%${search}%`, categoryId, storeId },
                     type: QueryTypes.SELECT
                 }
             );
 
-            if(firstLayerQuery.length !== 0) return firstLayerProducts;
+            console.log(firstLayerProducts)
+            if(firstLayerProducts.length > 5) return firstLayerProducts;
 
+            const retrievedIds = firstLayerProducts.map(product => product.id);
             const searchArray = search.split(' ');
             const whereArray = searchArray.map((el, key) => {
                 if (key < searchArray.length - 1)
-                    return `(name LIKE :search${key} OR description LIKE :search${key}) OR`;
+                    return `(p.name LIKE :search${key} OR p.description LIKE :search${key}) OR`;
                 else
-                    return `(name LIKE :search${key} OR description LIKE :search${key});`;
+                    return `(p.name LIKE :search${key} OR p.description LIKE :search${key})`;
             });
-            
-            const secondLayerQuery = `SELECT * FROM products 
-                WHERE (${whereArray.join(' ')})
-                AND categoryId = :categoryId`;
-            
+            if(retrievedIds.length === 0) retrievedIds.push(0)
+            const secondLayerQuery =
+                `SELECT 
+                    p.id, p.image, p.name,
+                    COALESCE(p.unitPrice - p.unitPrice * d.discount / 100, p.unitPrice) AS discountPrice,
+                    CASE 
+                        WHEN d.discount IS NULL THEN NULL 
+                        ELSE p.unitPrice 
+                    END AS originalPrice,
+                    p.description, p.categoryId               
+                FROM products p
+                LEFT JOIN discounts d ON d.id = p.discountId
+                JOIN categories c ON p.categoryId = c.id
+                    WHERE (${whereArray.join(' ')})
+                AND (p.categoryId = :categoryId OR c.parentCategoryId = :categoryId)
+                AND p.storeId = :storeId
+                AND p.id NOT IN (${retrievedIds.map((el) => el).join(', ')});`;
+
             const replacements: any = {};
             searchArray.forEach((el, key) => {
                 replacements[`search${key}`] = `%${el}%`;
             });
-            
             const secondLayerProducts: Product[] = await sequelize.query(
                 secondLayerQuery,
                 {
-                    replacements: { ...replacements, categoryId: categoryId },
+                    replacements: { ...replacements, categoryId, storeId},
                     type: QueryTypes.SELECT
                 }
             );
 
-            if(secondLayerProducts.length !== 0) return secondLayerProducts
+            if(secondLayerProducts.length + firstLayerProducts.length > 5) return [...firstLayerProducts, ...secondLayerProducts];
 
             const microStringArray = searchArray.map((el, key)=>{
                 const midPoint = Math.floor(el.length/2);
                 const firstHalf = el.substring(0,midPoint);
                 const secondHalf = el.substring(midPoint);
-                
+                return [firstHalf, secondHalf]
             })
-            const thirdLayerQuery = `SELECT * FROM products 
-            WHERE (${microStringArray.join(' ')})
-            AND categoryid = :categoryId` 
-        
+            const microArrayFlaten = microStringArray.flatMap(el=>el);
+            const whereThird = microArrayFlaten.map((el, key) => {
+                if (key < microArrayFlaten.length - 1)
+                    return `(p.name LIKE :search${key} OR p.description LIKE :search${key}) OR`;
+                else
+                    return `(p.name LIKE :search${key} OR p.description LIKE :search${key})`;
+            });
+
+            const thirdLayerQuery = 
+            `SELECT
+                p.id, p.image, p.name,
+                COALESCE(p.unitPrice - p.unitPrice * d.discount / 100, p.unitPrice) AS discountPrice,
+                CASE 
+                    WHEN d.discount IS NULL THEN NULL 
+                    ELSE p.unitPrice 
+                END AS originalPrice,
+                p.description, p.categoryId    
+            FROM products p
+            LEFT JOIN discounts d ON d.id = p.discountId
+            JOIN categories c on p.categoryId = c.id
+                WHERE (${whereThird.join(' ')})
+            AND (p.categoryId = :categoryId OR c.parentCategoryId = :categoryId)
+            AND p.storeId = :storeId
+            AND p.id NOT IN (${retrievedIds.map((el) => el).join(', ')});`;
+            
+            const replacementsThird: any = {}
+            microArrayFlaten.forEach((el, key) => {
+                replacementsThird[`search${key}`] = `%${el}%`;
+            });
             const thirdLayerProducts: Product[] = await sequelize.query(
                 thirdLayerQuery,
                 {
-                    replacements: { search: `%${search}%` },
+                    replacements: { ...replacementsThird, categoryId, storeId},
                     type: QueryTypes.SELECT
                 }
             );
 
-            return thirdLayerProducts        
+            return [...firstLayerProducts, ...secondLayerProducts, ...thirdLayerProducts]     
         } catch (error) {
             console.error(error);
             return null; 
